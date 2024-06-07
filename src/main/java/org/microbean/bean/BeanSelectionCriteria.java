@@ -72,22 +72,9 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
 
 
   /*
-   * Instance fields.
-   */
-
-
-  /*
    * Constructors.
    */
 
-
-  public BeanSelectionCriteria(final TypeMirror type) {
-    this(new Assignability(), type);
-  }
-
-  public BeanSelectionCriteria(final TypeMirror type, final List<NamedAttributeMap<?>> attributes) {
-    this(new Assignability(), type, attributes);
-  }
 
   public BeanSelectionCriteria(final Assignability assignability, final TypeMirror type) {
     this(assignability, type, defaultQualifiers());

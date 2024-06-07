@@ -13,14 +13,12 @@
  */
 package org.microbean.bean;
 
+import java.util.function.BiFunction;
+
 // Subordinate to Factory<T>.
 // An applicator of business method interceptions. This is used during assembly of a Factory implementation and should
 // be used probably only when "around-invoke" interceptions are in effect.
 @FunctionalInterface
-public interface InterceptionsApplicator<I> {
-
-  // i is the contextual instance
-  // TODO: c and rs go together, always, so anytime you need an rs you need a c.
-  public I apply(final I i, final Creation<I> c, final ReferenceSelector rs);
+public interface InterceptionsApplicator<I> extends BiFunction<I, Request<I>, I> {
 
 }

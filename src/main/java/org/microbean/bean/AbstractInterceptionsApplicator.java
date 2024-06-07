@@ -20,7 +20,7 @@ public class AbstractInterceptionsApplicator<I> implements InterceptionsApplicat
   }
 
   @Override
-  public I apply(final I i, final Creation<I> c, final ReferenceSelector rs) {
+  public I apply(final I i, final Request<I> r) {
     return i;
   }
 

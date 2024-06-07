@@ -76,7 +76,7 @@ final class TestDefaultBeanSet {
       new Bean<>(new Id(List.of(Lang.declaredType(String.class), Lang.declaredType(Object.class)),
                         anyAndDefaultQualifiers(),
                         SINGLETON_ID),
-                 new Singleton<>("Hello"));
+                 new Constant<>("Hello"));
     assertTrue(hello.factory() instanceof java.lang.constant.Constable);
     beanSet = Set.of(hello);
   }
@@ -102,9 +102,9 @@ final class TestDefaultBeanSet {
     // 5 == Bean<String>, Bean<DefaultBeanSet>, Bean<Alternate.Resolver>, Bean<Assignability>, Bean<TypeAndElementSource>
     assertEquals(5, set.size());
     hello = beans.bean(new BeanSelectionCriteria(assignability, tes.declaredType(String.class), List.of(defaultQualifier()), true)).cast();
-    assertSame("Hello", hello.factory().create(null, null));
+    assertSame("Hello", hello.factory().create(null));
     hello = beans.bean(new BeanSelectionCriteria(assignability, tes.declaredType(Object.class), List.of(defaultQualifier()), true)).cast();
-    assertSame("Hello", hello.factory().create(null, null));
+    assertSame("Hello", hello.factory().create(null));
   }
 
   @SuppressWarnings("unchecked")
@@ -124,9 +124,9 @@ final class TestDefaultBeanSet {
     // 3 == Bean<String>, Bean<DefaultBeanSet>, Bean<Alternate.Resolver>
     assertEquals(1, set.size());
     hello = beans.bean(new BeanSelectionCriteria(assignability, tes.declaredType(String.class), List.of(defaultQualifier()), true)).cast();
-    assertSame("Hello", hello.factory().create(null, null));
+    assertSame("Hello", hello.factory().create(null));
     hello = beans.bean(new BeanSelectionCriteria(assignability, tes.declaredType(Object.class), List.of(defaultQualifier()), true)).cast();
-    assertSame("Hello", hello.factory().create(null, null));
+    assertSame("Hello", hello.factory().create(null));
   }
 
 }

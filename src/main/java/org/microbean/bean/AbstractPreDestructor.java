@@ -20,7 +20,7 @@ public class AbstractPreDestructor<I> implements PreDestructor<I> {
   }
 
   @Override
-  public I preDestroy(final I i, final Creation<I> c, final ReferenceSelector r) {
+  public I preDestroy(final I i, final Request<I> r) {
     return i;
   }
 

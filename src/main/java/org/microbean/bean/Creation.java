@@ -23,9 +23,33 @@ package org.microbean.bean;
  *
  * @author <a href="https://about.me/lairdnelson" target="_parent">Laird Nelson</a>
  */
-public interface Creation<I> extends AutoCloseable, Cloneable {
+public interface Creation<I> {
+
 
   /**
+   * Signals that the supplied {@code instance} has been created and is about to be made available for use.
+   *
+   * <p>This method is typically invoked from within a {@link Factory#create(Creation, ReferenceSelector)} implementation
+   * immediately prior to its returning a value.</p>
+   *
+   * <p>The default implementation of this method does nothing.</p>
+   *
+   * @param instance the instance that was created; must not be {@code null}
+   *
+   * @exception NullPointerException if {@code instance} was {@code null}
+   *
+   * @exception IllegalArgumentException if {@code instance} was found to be unsuitable for any reason
+   *
+   * @idempotency Overrides of this method must be idempotent.
+   *
+   * @threadsafety Overrides of this method must be safe for concurrent use by multiple threads.
+   */
+  // MUST be idempotent
+  // For incomplete instances
+  public void created(final I instance);
+
+
+  /*
    * Returns the {@link BeanSelectionCriteria} that is in effect (and that is the reason for which this {@link Creation}
    * has been created), if known, or {@code null} if not.
    *
@@ -33,21 +57,21 @@ public interface Creation<I> extends AutoCloseable, Cloneable {
    *
    * @nullability Implementations of this method may return {@code null}.
    */
-  public BeanSelectionCriteria beanSelectionCriteria();
+  // public BeanSelectionCriteria beanSelectionCriteria();
 
-  /**
+  /*
    * Clones this {@link Creation} such that the resulting clone will return the supplied {@link BeanSelectionCriteria}
-   * from any invocation of its {@link #beanSelectionCriteria()} method, and, critically, if this {@link Creation}
-   * implementation implements {@link AutoCloseableRegistry}, arranges to have the resulting clone {@linkplain
-   * AutoCloseableRegistry#register(AutoCloseable) registered with} its immediate ancestor (this {@link Creation}) such
-   * that {@linkplain #close() closing} the ancestor (this {@link Creation}) will also {@linkplain #close() close} the
-   * clone.
+   * from any invocation of its {@link #beanSelectionCriteria()} method, and, <strong>critically</strong>, if this
+   * {@link Creation} implementation implements {@link AutoCloseableRegistry}, arranges to have the resulting clone
+   * {@linkplain AutoCloseableRegistry#register(AutoCloseable) registered with} its immediate ancestor (this {@link
+   * Creation}) such that {@linkplain #close() closing} the ancestor (this {@link Creation}) will also {@linkplain
+   * #close() close} the clone.
    *
    * <p>If an implementation of this method does not adhere to these requirements, undefined behavior, and possibly
    * memory leaks, will occur.</p>
    *
    * @param beanSelectionCriteria the {@link BeanSelectionCriteria} that is the reason for which the resulting clone is
-   * being requested; may be {@code null}
+   * being returned; may be {@code null}
    *
    * @return a clone of this {@link Creation}; never {@code null}
    *
@@ -61,9 +85,9 @@ public interface Creation<I> extends AutoCloseable, Cloneable {
    *
    * @threadsafety Implementations of this method must be safe for concurrent use by multiple threads.
    */
-  public Creation<I> clone(final BeanSelectionCriteria beanSelectionCriteria);
+  // public Creation<I> newChild(final BeanSelectionCriteria beanSelectionCriteria);
 
-  /**
+  /*
    * Closes this {@link Creation}, and, if this {@link Creation} implementation implements {@link
    * AutoCloseableRegistry}, any clones that were {@linkplain AutoCloseableRegistry#register(AutoCloseable) registered
    * with it}.
@@ -86,8 +110,14 @@ public interface Creation<I> extends AutoCloseable, Cloneable {
    */
   // MUST be idempotent
   // During creation (as opposed to destruction) this method should throw an IllegalStateException.
-  @Override // AutoCloseable
-  public void close();
+  // @Override // AutoCloseable
+  // public void close();
+
+
+  /*
+   * Default methods.
+   */
+
 
   /**
    * Casts this {@link Creation} to the inferred return type and returns it.
@@ -103,30 +133,6 @@ public interface Creation<I> extends AutoCloseable, Cloneable {
    */
   public default <J> Creation<J> cast() {
     return cast(this);
-  }
-
-  /**
-   * Signals that the supplied {@code instance} has been created and is about to be made available for use.
-   *
-   * <p>This method is typically invoked from within a {@link Factory#create(Creation, ReferenceSelector)} implementation
-   * immediately prior to its returning a value.</p>
-   *
-   * <p>The default implementation of this method does nothing.</p>
-   *
-   * @param instance the instance that was created; must not be {@code null}
-   *
-   * @exception NullPointerException if {@code instance} was {@code null}
-   *
-   * @exception IllegalArgumentException if {@code instance} was found to be unsuitable for any reason
-   *
-   * @idempotency Overrides of this method must be idempotent.
-   *
-   * @threadsafety Overrides of this method must be safe for concurrent use by multiple threads.
-   */
-  // MUST be idempotent
-  // For incomplete instances
-  public default void created(final I instance) {
-
   }
 
 

@@ -13,9 +13,10 @@
  */
 package org.microbean.bean;
 
-@FunctionalInterface
-public interface Instantiator<I> {
+public abstract class AbstractProducer<I> implements Producer<I> {
 
-  public I instantiate();
-
+  protected AbstractProducer() {
+    super();
+  }
+  
 }

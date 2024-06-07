@@ -19,7 +19,7 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 
@@ -33,12 +33,7 @@ import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 @FunctionalInterface
 public interface Factory<I> extends Aggregate, Constable {
 
-  public I create(final Creation<I> c, final ReferenceSelector referenceSelector);
-
-  @Override // Aggregate
-  public default Set<Dependency> dependencies() {
-    return Set.of();
-  }
+  public I create(final Request<I> r);
 
   public default I singleton() {
     return null;
@@ -51,17 +46,17 @@ public interface Factory<I> extends Aggregate, Constable {
   // MUST be idempotent
   // If i is an AutoCloseable, MUST be idempotent
   // autoCloseableRegistry's close() MUST be idempotent
-  public default void destroy(final I i, final AutoCloseable autoCloseableRegistry, final Creation<I> c, final ReferenceSelector rs) {
+  public default void destroy(final I i, final AutoCloseable autoCloseableRegistry, final Request<I> request) {
     if (i instanceof AutoCloseable ac) {
       final Runnable r = () -> {
         try {
           ac.close();
         } catch (final RuntimeException | Error re) {
           throw re;
+        } catch (final InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new DestructionException(e.getMessage(), e);
         } catch (final Exception e) {
-          if (e instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-          }
           throw new DestructionException(e.getMessage(), e);
         }
       };
@@ -72,10 +67,10 @@ public interface Factory<I> extends Aggregate, Constable {
           r.run();
         } catch (final RuntimeException | Error re) {
           throw re;
+        } catch (final InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new DestructionException(e.getMessage(), e);
         } catch (final Exception e) {
-          if (e instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-          }
           throw new DestructionException(e.getMessage(), e);
         }
       }

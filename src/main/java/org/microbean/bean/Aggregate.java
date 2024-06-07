@@ -13,11 +13,39 @@
  */
 package org.microbean.bean;
 
-import java.util.Set;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.SequencedSet;
 
-// Something that has dependencies.
+/**
+ * An object with {@linkplain Dependency dependencies}.
+ *
+ * @author <a href="https://about.me/lairdnelson/" target="_top">Laird Nelson</a>
+ *
+ * @see #dependencies()
+ */
 public interface Aggregate {
 
-  public Set<Dependency> dependencies();
+  public static final SequencedSet<Dependency> EMPTY_DEPENDENCIES = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(0));
+
+  /**
+   * Returns an unmodifiable {@link SequencedSet} of {@link Dependency} instances.
+   *
+   * @return an unmodifiable {@link SequencedSet} of {@link Dependency} instances; never {@code null}
+   *
+   * @see Dependency
+   */
+  public default SequencedSet<Dependency> dependencies() {
+    return EMPTY_DEPENDENCIES;
+  }
+
+  public default List<Assignment> assign(final Request<?> r) {
+    final Collection<? extends Dependency> ds = this.dependencies();
+    return ds == null || ds.isEmpty() ? List.of() : ds.stream()
+      .map(d -> d.assign(r))
+      .toList();
+  }
 
 }

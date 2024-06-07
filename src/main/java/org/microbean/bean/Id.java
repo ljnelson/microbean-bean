@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2023 microBean™.
+ * Copyright © 2023–2024 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -17,6 +17,7 @@ import java.lang.constant.Constable;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import org.microbean.scope.ScopeMember;
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 import static java.lang.constant.ConstantDescs.CD_int;
 import static java.lang.constant.ConstantDescs.CD_List;
+import static java.lang.constant.ConstantDescs.CD_Object;
 
 import static org.microbean.bean.ConstantDescs.CD_Id;
 import static org.microbean.bean.ConstantDescs.CD_BeanTypeList;
@@ -50,7 +52,7 @@ public final record Id(BeanTypeList types,
     this(new BeanTypeList(type), attributes, governingScopeId, Ranked.DEFAULT_RANK);
   }
 
-  public Id(final List<? extends TypeMirror> types,
+  public Id(final Collection<? extends TypeMirror> types,
             final List<NamedAttributeMap<?>> attributes,
             final NamedAttributeMap<?> governingScopeId) {
     this(new BeanTypeList(types), attributes, governingScopeId, Ranked.DEFAULT_RANK);

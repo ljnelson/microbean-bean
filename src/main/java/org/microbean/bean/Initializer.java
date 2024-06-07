@@ -17,7 +17,6 @@ package org.microbean.bean;
 // Calls initializer methods.
 public interface Initializer<I> extends Aggregate {
 
-  // TODO: c and r go together, always, so anytime you need an r you need a c.
-  public I initialize(final I i, final Creation<I> c, final ReferenceSelector r);
+  public I initialize(final I i, final Request<I> r);
 
 }

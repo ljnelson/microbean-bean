@@ -54,10 +54,10 @@ public abstract class AbstractFactory<I> implements Factory<I> {
   }
 
   @Override // Factory<I>
-  public I create(final Creation<I> c, final ReferenceSelector r) {
-    // Produce the product, initialize the product, apply business method interceptions to the product, return the
-    // product
-    return this.interceptionsApplicator.apply(this.postInitializer.postInitialize(this.initializer.initialize(this.producer.produce(c, r), c, r), c, r), c, r);
+  public I create(final Request<I> r) {
+    // Produce the product, initialize the product, post-initialize the product, apply business method interceptions to
+    // the product, return the product
+    return this.interceptionsApplicator.apply(this.postInitializer.postInitialize(this.initializer.initialize(this.producer.produce(r), r), r), r);
   }
 
   @Override // Factory<I>
@@ -68,15 +68,15 @@ public abstract class AbstractFactory<I> implements Factory<I> {
   // MUST be idempotent
   @Override // Factory<I>
   @SuppressWarnings("try")
-  public void destroy(final I i, final AutoCloseable destructionRegistry, final Creation<I> c, final ReferenceSelector rs) {
+  public void destroy(final I i, final AutoCloseable destructionRegistry, final Request<I> r) {
     if (this.destroyed) {
       return;
     }
     if (destructionRegistry == null) {
-      this.producer.dispose(this.preDestructor.preDestroy(i, c, rs), c, rs);
+      this.producer.dispose(this.preDestructor.preDestroy(i, r), r);
     } else {
       try (destructionRegistry) {
-        this.producer.dispose(this.preDestructor.preDestroy(i, c, rs), c, rs);
+        this.producer.dispose(this.preDestructor.preDestroy(i, r), r);
       } catch (final RuntimeException | Error e) {
         throw e;
       } catch (final InterruptedException e) {

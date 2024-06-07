@@ -23,16 +23,18 @@ package org.microbean.bean;
  *
  * @see #register(AutoCloseable)
  */
-public interface AutoCloseableRegistry extends AutoCloseable, Cloneable {
+public interface AutoCloseableRegistry extends AutoCloseable {
 
   /**
    * Returns a new {@link AutoCloseableRegistry} instance that is not {@linkplain #closed() closed} and has no
-   * {@linkplain #register(AutoCloseable)} registrations.
+   * {@linkplain #register(AutoCloseable)} registrations, that is logically a child of this {@link
+   * AutoCloseableRegistry} instance.
    *
-   * <p>The new instance will be {@linkplain #register(AutoCloseable) registered} with this {@link
-   * AutoCloseableRegistry} if this {@link AutoCloseableRegistry} is not {@linkplain #closed() closed}.</p>
+   * <p>The new child instance will be {@linkplain #register(AutoCloseable) registered} with this {@link
+   * AutoCloseableRegistry} if this {@link AutoCloseableRegistry} is not {@linkplain #closed() closed} for subsequent
+   * closing when this {@link AutoCloseableRegistry} is {@linkplain #close() closed}.</p>
    *
-   * @return a new {@link AutoCloseableRegistry}
+   * @return a new {@link AutoCloseableRegistry} that is a child of this one
    *
    * @nullability Implementations of this method must not return {@code null}.
    *
@@ -47,7 +49,7 @@ public interface AutoCloseableRegistry extends AutoCloseable, Cloneable {
    *
    * @see #register(AutoCloseable)
    */
-  public AutoCloseableRegistry clone();
+  public AutoCloseableRegistry newChild();
 
   /**
    * Closes this {@link AutoCloseableRegistry} and {@linkplain AutoCloseable#close() closes} its {@linkplain
@@ -60,7 +62,7 @@ public interface AutoCloseableRegistry extends AutoCloseable, Cloneable {
   @Override // AutoCloseable
   public void close();
 
-  /**
+  /*
    * Returns {@code true} if and only if this {@link AutoCloseableRegistry} has been {@linkplain #close() closed}.
    *
    * @return {@code true} if and only if this {@link AutoCloseableRegistry} has been {@linkplain #close() closed}
@@ -69,7 +71,7 @@ public interface AutoCloseableRegistry extends AutoCloseable, Cloneable {
    *
    * @threadsafety Implementations of this method must be safe for concurrent use by multiple threads.
    */
-  public boolean closed();
+  // public boolean closed();
 
   /**
    * If this {@link AutoCloseableRegistry} is not {@linkplain #closed() closed}, and if the supplied {@link
@@ -86,6 +88,7 @@ public interface AutoCloseableRegistry extends AutoCloseable, Cloneable {
    *
    * @exception NullPointerException if {@code c} is {@code null}
    */
+  // @Deprecated(forRemoval = true) // should be an implementation detail of newChild()
   public boolean register(final AutoCloseable c);
 
 }

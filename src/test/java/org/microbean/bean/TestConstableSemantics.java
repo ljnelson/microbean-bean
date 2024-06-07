@@ -75,14 +75,26 @@ final class TestConstableSemantics {
     assertEquals(id, Constables.describeConstable(id).orElseThrow().resolveConstantDesc(privateLookupIn(ReferenceTypeList.class, lookup())));
   }
 
+  /*
   @Test
   final void testFactory() throws ReflectiveOperationException {
     final Factory<String> f = new Singleton<>("Hello");
     assertNull(f.singleton());
     @SuppressWarnings("unchecked")
-      final Factory<String> f2 = (Factory<String>)Constables.describeConstable(f).orElseThrow().resolveConstantDesc(lookup());
+    final Factory<String> f2 = (Factory<String>)Constables.describeConstable(f).orElseThrow().resolveConstantDesc(lookup());
     assertNotSame(f, f2);
     assertSame(f.singleton(), f2.singleton());
+  }
+  */
+
+  @Test
+  final void testConstant() throws ReflectiveOperationException {
+    final Constant<String> c = new Constant<>("Hello");
+    assertNotNull(c.singleton());
+    @SuppressWarnings("unchecked")
+    final Constant<String> c2 = (Constant<String>)Constables.describeConstable(c).orElseThrow().resolveConstantDesc(lookup());
+    assertNotSame(c, c2);
+    assertSame(c.singleton(), c2.singleton());
   }
 
 }

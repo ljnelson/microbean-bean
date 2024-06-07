@@ -18,6 +18,6 @@ package org.microbean.bean;
 public interface PostInitializer<I> {
 
   // TODO: c and r go together, always, so anytime you need an r you need a c.
-  public I postInitialize(final I i, final Creation<I> c, final ReferenceSelector r);
+  public I postInitialize(final I i, final Request<I> r);
 
 }

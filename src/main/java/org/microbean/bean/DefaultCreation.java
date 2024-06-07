@@ -15,26 +15,25 @@ package org.microbean.bean;
 
 import java.util.Objects;
 
+@Deprecated(forRemoval = true) // not really needed because DefaultRequest is better suited
 public class DefaultCreation<I> implements AutoCloseableRegistry, Creation<I> {
 
   private final AutoCloseableRegistry registry;
 
-  private final BeanSelectionCriteria beanSelectionCriteria;
+  // private final BeanSelectionCriteria beanSelectionCriteria;
 
   public DefaultCreation(final AutoCloseableRegistry registry) {
-    this(registry, null);
+    // this(registry, null);
+    super();
+    this.registry = Objects.requireNonNull(registry, "registry");
   }
 
+  @Deprecated(forRemoval = true)
   public DefaultCreation(final AutoCloseableRegistry registry,
                          final BeanSelectionCriteria beanSelectionCriteria) {
     super();
     this.registry = Objects.requireNonNull(registry, "registry");
-    this.beanSelectionCriteria = beanSelectionCriteria;
-  }
-
-  @Override // Creation<I>
-  public BeanSelectionCriteria beanSelectionCriteria() {
-    return beanSelectionCriteria;
+    // this.beanSelectionCriteria = beanSelectionCriteria;
   }
 
   @Override // Creation<I>
@@ -43,24 +42,21 @@ public class DefaultCreation<I> implements AutoCloseableRegistry, Creation<I> {
   }
 
   @Override // AutoCloseableRegistry
-  public DefaultCreation<I> clone() {
-    return this.clone(this.beanSelectionCriteria());
+  public DefaultCreation<I> newChild() {
+    // return this.newChild(this.beanSelectionCriteria);
+    return new DefaultCreation<>(this.registry.newChild());
   }
 
-  @Override // Creation<I>
+  @Deprecated(forRemoval = true)
   @SuppressWarnings("unchecked")
-  public DefaultCreation<I> clone(final BeanSelectionCriteria beanSelectionCriteria) {
-    return new DefaultCreation<>(this.registry.clone(), beanSelectionCriteria);
+  public DefaultCreation<I> newChild(final BeanSelectionCriteria beanSelectionCriteria) {
+    // return new DefaultCreation<>(this.registry.newChild(), beanSelectionCriteria);
+    return new DefaultCreation<>(this.registry.newChild());
   }
 
   @Override // AutoCloseableRegistry
   public final void close() {
     this.registry.close();
-  }
-
-  @Override // AutoCloseableRegistry
-  public final boolean closed() {
-    return this.registry.closed();
   }
 
   @Override // AutoCloseableRegistry

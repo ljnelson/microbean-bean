@@ -14,7 +14,9 @@
 package org.microbean.bean;
 
 import java.util.Collection;
-import java.util.Set;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 
 public class AbstractInitializer<I> implements Initializer<I> {
 
@@ -24,7 +26,7 @@ public class AbstractInitializer<I> implements Initializer<I> {
    */
 
 
-  private final Set<Dependency> dependencies;
+  private final SequencedSet<Dependency> dependencies;
 
 
   /*
@@ -34,12 +36,13 @@ public class AbstractInitializer<I> implements Initializer<I> {
 
   public AbstractInitializer() {
     super();
-    this.dependencies = Set.of();
+    this.dependencies = Aggregate.EMPTY_DEPENDENCIES;
   }
 
-  public AbstractInitializer(final Collection<? extends Dependency> dependencies) {
+  public AbstractInitializer(final SequencedSet<? extends Dependency> dependencies) {
     super();
-    this.dependencies = Set.copyOf(dependencies);
+    this.dependencies =
+      dependencies == null || dependencies.isEmpty() ? EMPTY_DEPENDENCIES : Collections.unmodifiableSequencedSet(new LinkedHashSet<>(dependencies));
   }
 
 
@@ -50,12 +53,12 @@ public class AbstractInitializer<I> implements Initializer<I> {
 
   // TODO: c and r go together, always, so anytime you need an r you need a c.
   @Override // Initializer<I>
-  public I initialize(final I i, final Creation<I> c, final ReferenceSelector r) {
+  public I initialize(final I i, final Request<I> r) {
     return i;
   }
 
   @Override // Initializer<I> (Aggregate)
-  public final Set<Dependency> dependencies() {
+  public final SequencedSet<Dependency> dependencies() {
     return this.dependencies;
   }
 
