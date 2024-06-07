@@ -57,11 +57,16 @@
 
       <!-- Normal dependencies. -->
 
+      <dependency>
+        <groupId>org.microbean</groupId>
+        <artifactId>microbean-constant</artifactId>
+        <version>0.0.7</version>
+      </dependency>
 
       <dependency>
         <groupId>org.microbean</groupId>
         <artifactId>microbean-interceptor</artifactId>
-        <version>0.2.3</version>
+        <version>0.4.0</version>
       </dependency>
 
       <dependency>
@@ -73,7 +78,7 @@
       <dependency>
         <groupId>org.microbean</groupId>
         <artifactId>microbean-lang</artifactId>
-        <version>0.0.12</version>
+        <version>0.0.14</version>
       </dependency>
 
       <dependency>
@@ -97,6 +102,12 @@
 
     <!-- Compile-scoped dependencies. -->
 
+
+    <dependency>
+      <groupId>org.microbean</groupId>
+      <artifactId>microbean-constant</artifactId>
+      <scope>compile</scope>
+    </dependency>
 
     <dependency>
       <groupId>org.microbean</groupId>

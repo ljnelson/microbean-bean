@@ -20,7 +20,7 @@ import java.lang.constant.MethodHandleDesc;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 
@@ -46,7 +46,7 @@ public final record Bean<I>(Id id, Factory<I> factory) implements Aggregate, Alt
   }
 
   @Override // Aggregate
-  public final Set<Dependency> dependencies() {
+  public final SequencedSet<Dependency> dependencies() {
     return this.factory().dependencies();
   }
 

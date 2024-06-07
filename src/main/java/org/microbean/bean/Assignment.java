@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2023–2024 microBean™.
+ * Copyright © 2024 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -11,21 +11,21 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+package org.microbean.bean;
 
-/**
- * Provides packages related to implementing beans.
- *
- * @author <a href="https://about.me/lairdnelson" target="_parent">Laird Nelson</a>
- */
-module org.microbean.bean {
+import java.util.Objects;
 
-  exports org.microbean.bean;
-  
-  requires transitive java.compiler;
-  requires            org.microbean.constant;
-  requires transitive org.microbean.interceptor;
-  requires transitive org.microbean.lang;
-  requires transitive org.microbean.qualifier;
-  requires transitive org.microbean.scope;
+// An assignment of a value to a dependency (obviously, I hope).
+public record Assignment(Dependency dependency, Object value) {
+
+  public Assignment {
+    Objects.requireNonNull(dependency, "dependency");
+  }
+
+  // Re-ups this assignment and returns a new one.
+  // Convenience
+  public final Assignment replace(final Request<?> r) {
+    return this.dependency().assign(r);
+  }
 
 }

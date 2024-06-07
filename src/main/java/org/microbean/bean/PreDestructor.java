@@ -18,7 +18,6 @@ package org.microbean.bean;
 @FunctionalInterface
 public interface PreDestructor<I> {
 
-  // TODO: c and rs go together, always, so anytime you need an rs you need a c.
-  public I preDestroy(final I i, final Creation<I> c, final ReferenceSelector rs);
+  public I preDestroy(final I i, final Request<I> r);
 
 }

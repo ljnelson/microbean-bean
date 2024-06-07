@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2023 microBean™.
+ * Copyright © 2023–2024 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -29,14 +29,9 @@ final class TestFactory {
   }
 
   @Test
-  final void testSingletonBehavior() {
-    final Factory<String> f = new Singleton<>("Hello");
-
-    // No one has created it yet
-    assertNull(f.singleton());
-
-    // Now someone has
-    final String s = f.create(null, null);
+  final void testConstantBehavior() {
+    final Factory<String> f = new Constant<>("Hello");
+    final String s = f.create(null);
     assertSame("Hello", s);
     assertSame("Hello", f.singleton());
   }

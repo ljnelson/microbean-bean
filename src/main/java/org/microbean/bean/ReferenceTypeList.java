@@ -33,11 +33,11 @@ import javax.lang.model.type.TypeMirror;
 
 import org.microbean.constant.Constables;
 
-import org.microbean.lang.TypeAndElementSource;
 import org.microbean.lang.Equality;
 import org.microbean.lang.Lang;
 import org.microbean.lang.NameTypeMirrorComparator;
 import org.microbean.lang.SpecializationDepthTypeMirrorComparator;
+import org.microbean.lang.TypeAndElementSource;
 
 import org.microbean.lang.type.DelegatingTypeMirror;
 

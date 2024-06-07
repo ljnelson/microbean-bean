@@ -13,13 +13,7 @@
  */
 package org.microbean.bean;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-public interface ReferenceSelector extends AutoCloseable, CreationSupplier {
+public interface ReferenceSelector {
 
 
   /*
@@ -27,54 +21,21 @@ public interface ReferenceSelector extends AutoCloseable, CreationSupplier {
    */
 
 
-  public BeanSet beanSet();
-
+  // Yes, this is needed. Consider: the beanSelectionCriteria actually selects two beans. If you want a reference, you
+  // have to say which one of the matched beans you want to use. You can't just use Id because you're going to need the
+  // Factory<R> eventually.
   public <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Bean<R> bean, final Creation<R> creation);
-
 
   /*
    * Default methods.
    */
 
-
-  @Override // AutoCloseable
-  public default void close() {}
+  public default <R> R reference(final BeanSelection<R> beanSelection, final Creation<R> creation) {
+    return this.reference(beanSelection.beanSelectionCriteria(), beanSelection.bean(), creation);
+  }
 
   public default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Creation<R> creation) {
-    final Bean<?> b = this.beanSet().bean(beanSelectionCriteria);
-    if (b == null) {
-      throw new UnsatisfiedResolutionException(beanSelectionCriteria);
-    }
-    return this.reference(beanSelectionCriteria, b.cast(), creation);
-  }
-
-  // Convenience
-  @Deprecated
-  public default Object[] referencesArray(final Collection<? extends BeanSelectionCriteria> bscs, final Creation<?> c) {
-    if (bscs.isEmpty()) {
-      return new Object[0];
-    }
-    final Object[] rv = new Object[bscs.size()];
-    int i = 0;
-    final Iterator<? extends BeanSelectionCriteria> iterator = bscs.iterator();
-    while (iterator.hasNext()) {
-      rv[i++] = this.reference(iterator.next(), c);
-    }
-    return rv;
-  }
-
-  // Convenience
-  @Deprecated
-  public default List<?> referencesList(final Collection<? extends BeanSelectionCriteria> bscs, final Creation<?> c) {
-    if (bscs.isEmpty()) {
-      return List.of();
-    }
-    // Can't use List.of() variants because references might be null.
-    final List<Object> rv = new ArrayList<>(bscs.size());
-    for (final BeanSelectionCriteria bsc : bscs) {
-      rv.add(this.reference(bsc, c));
-    }
-    return Collections.unmodifiableList(rv);
+    return this.reference(beanSelectionCriteria, null, creation);
   }
 
 }

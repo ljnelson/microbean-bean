@@ -23,7 +23,7 @@ import java.util.function.BiFunction;
  *
  * @author <a href="https://about.me/lairdnelson/" target="_top">Laird Nelson</a>
  */
-public interface BeanSet {
+public interface BeanSet extends BeanSelector, BeansSelector {
 
   /**
    * Returns an entirely immutable {@link SequencedSet} of {@link Bean}s containing all {@link Bean}s known to this
@@ -34,63 +34,5 @@ public interface BeanSet {
    */
   // Give me all the Beans
   public SequencedSet<Bean<?>> beans();
-
-  /**
-   * Returns an entirely immutable {@link SequencedSet} of {@link Bean}s {@linkplain BeanSelectionCriteria#selects(Bean)
-   * selected by the supplied <code>beanSelectionCriteria</code>}.
-   *
-   * @param beanSelectionCriteria a {@link BeanSelectionCriteria}; must not be {@code null}
-   *
-   * @return an entirely immutable {@link SequencedSet} of {@link Bean}s {@linkplain BeanSelectionCriteria#selects(Bean)
-   * selected by the supplied <code>beanSelectionCriteria</code>}; never {@code null}
-   *
-   * @exception NullPointerException if {@code beanSelectionCriteria} is {@code null}
-   */
-  // Give me Beans that match
-  public SequencedSet<Bean<?>> beans(final BeanSelectionCriteria beanSelectionCriteria);
-
-  /**
-   * Returns the sole {@link Bean} {@linkplain BeanSelectionCriteria#selects(Bean) selected by the supplied
-   * <code>beanSelectionCriteria</code>}, or {@code null} if there is no such {@link Bean}.
-   *
-   * <p>If there is more than one {@link Bean} {@linkplain BeanSelectionCriteria#selects(Bean) selected by the supplied
-   * <code>beanSelectionCriteria</code>}, then the supplied {@link BiFunction} is invoked with the supplied {@code
-   * beanSelectionCriteria} and the selected {@link Bean}s and its result is returned.</p>
-   *
-   * @param beanSelectionCriteria a {@link BeanSelectionCriteria}; must not be {@code null}
-   *
-   * @param op a disambiguating {@link BiFunction} that can further resolve a {@link Collection} of {@link Bean}s to a
-   * single {@link Bean}; must not be {@code null}
-   *
-   * @return the resolved {@link Bean}, or {@code null}
-   *
-   * @exception NullPointerException if any argument is {@code null}
-   *
-   * @exception RuntimeException if the supplied {@code op} throws a {@link RuntimeException}
-   */
-  // Give me the single Bean that matches, null if none match, or run op on the conflicting bits
-  public Bean<?> bean(final BeanSelectionCriteria beanSelectionCriteria,
-                      final BiFunction<? super BeanSelectionCriteria, ? super Collection<? extends Bean<?>>, ? extends Bean<?>> op);
-
-  /**
-   * Returns the sole {@link Bean} {@linkplain BeanSelectionCriteria#selects(Bean) selected by the supplied
-   * <code>beanSelectionCriteria</code>}, or {@code null} if there is no such {@link Bean}.
-   *
-   * <p>If there is more than one {@link Bean} {@linkplain BeanSelectionCriteria#selects(Bean) selected by the supplied
-   * <code>beanSelectionCriteria</code>}, then an {@link AmbiguousResolutionException} is thrown.</p>
-   *
-   * @param beanSelectionCriteria a {@link BeanSelectionCriteria}; must not be {@code null}
-   *
-   * @return the resolved {@link Bean}, or {@code null}
-   *
-   * @exception NullPointerException if any argument is {@code null}
-   *
-   * @exception AmbiguousResolutionException if the supplied {@code beanSelectionCriteria} selects more than one {@link
-   * Bean}
-   */
-  // Give me the single Bean that matches, null if none match, or throw an exception
-  public default Bean<?> bean(final BeanSelectionCriteria beanSelectionCriteria) {
-    return this.bean(beanSelectionCriteria, Alternate.Resolver::fail);
-  }
 
 }

@@ -17,40 +17,43 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 public class DefaultAutoCloseableRegistry implements AutoCloseableRegistry {
 
-  // @GuardedBy("this")
+  private final Lock lock;
+
+  // @GuardedBy("lock")
   private Set<AutoCloseable> closeables;
 
   public DefaultAutoCloseableRegistry() {
     super();
+    this.lock = new ReentrantLock();
   }
 
-  @Override // Cloneable
-  public DefaultAutoCloseableRegistry clone() {
-    final DefaultAutoCloseableRegistry dacr;
-    try {
-      dacr = (DefaultAutoCloseableRegistry)super.clone();
-    } catch (final CloneNotSupportedException e) {
-      throw new AssertionError(e.getMessage(), e);
-    }
-    dacr.closeables = null;
-    if (!this.register(dacr)) { // CRITICAL
+  @Override // AutoCloseableRegistry
+  public DefaultAutoCloseableRegistry newChild() {
+    final DefaultAutoCloseableRegistry child = new DefaultAutoCloseableRegistry();
+    if (!this.register(child)) { // CRITICAL
       throw new AssertionError();
     }
-    return dacr;
+    return child;
   }
 
   @Override // AutoCloseableRegistry
   public final void close() {
     final Set<? extends AutoCloseable> closeables;
-    synchronized (this) {
+    lock.lock();
+    try {
       closeables = this.closeables;
       if (closeables == Set.<AutoCloseable>of()) {
-        // already closed
+        // Already closed
         return;
       }
       this.closeables = Set.of();
+    } finally {
+      lock.unlock();
     }
     if (closeables == null) {
       // nothing to close
@@ -66,10 +69,14 @@ public class DefaultAutoCloseableRegistry implements AutoCloseableRegistry {
         } else {
           re.addSuppressed(e);
         }
-      } catch (final Exception e) {
-        if (e instanceof InterruptedException) {
-          Thread.currentThread().interrupt();
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+        if (re == null) {
+          re = new BeanException(e.getMessage(), e);
+        } else {
+          re.addSuppressed(e);
         }
+      } catch (final Exception e) {
         if (re == null) {
           re = new BeanException(e.getMessage(), e);
         } else {
@@ -82,28 +89,23 @@ public class DefaultAutoCloseableRegistry implements AutoCloseableRegistry {
     }
   }
 
-  @Override // AutoCloseable
-  public final synchronized boolean closed() {
-    return this.closeables == Set.<AutoCloseable>of();
-  }
-
   @Override // AutoCloseableRegistry
   public final boolean register(final AutoCloseable closeable) {
-    if (Objects.requireNonNull(closeable, "closeable") == this) {
-      throw new IllegalArgumentException("closeable == this");
+    if (closeable == null || closeable == this) {
+      return false;
     }
-    synchronized (this) {
-      if (this.closed()) {
+    lock.lock();
+    try {
+      if (this.closeables == Set.<AutoCloseable>of()) {
+        // Already closed
         return false;
       } else if (this.closeables == null) {
         this.closeables = new LinkedHashSet<>();
       }
       return this.closeables.add(closeable);
+    } finally {
+      lock.unlock();
     }
-  }
-
-  public final synchronized int size() {
-    return this.closeables == null ? 0 : this.closeables.size();
   }
 
 }

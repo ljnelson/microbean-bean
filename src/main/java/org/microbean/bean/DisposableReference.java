@@ -193,7 +193,7 @@ public final class DisposableReference<R> extends WeakReference<R> implements Au
       try {
         this.disposer.accept(this.referent);
       } catch (RuntimeException | Error e) {
-        DISPOSED.setVolatile(false); // volatile write; oops; our optimism was misplaced
+        this.disposed = false; // volatile write; oops; our optimism was misplaced
         throw e;
       }
       return true;
