@@ -13,11 +13,14 @@
  */
 package org.microbean.bean;
 
-// Experimental
 public interface Request<I> extends Creation<I>, ReferenceSelector {
 
-  public BeanSelection<I> beanSelection();
-  
-  public <J> Request<J> newChild(final BeanSelection<J> beanSelection);
+  public BeanReduction<I> beanReduction();
+
+  public <J> Request<J> newChild(final BeanReduction<J> beanReduction);
+
+  public default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria) {
+    return this.reference(beanSelectionCriteria, this.cast());
+  }
 
 }

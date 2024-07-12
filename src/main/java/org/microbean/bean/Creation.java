@@ -14,7 +14,7 @@
 package org.microbean.bean;
 
 /**
- * A representation of a {@link Factory}'s {@linkplain Factory#create(Creation, ReferenceSelector) creation activity}.
+ * A representation of a {@link Factory}'s {@linkplain Factory#create(Request) creation activity}.
  *
  * <p>Most {@link Creation} implementations will, and should, also be {@link AutoCloseableRegistry} implementations.
  * See {@link DefaultCreation} as one arbitrary example.</p>
@@ -29,8 +29,8 @@ public interface Creation<I> {
   /**
    * Signals that the supplied {@code instance} has been created and is about to be made available for use.
    *
-   * <p>This method is typically invoked from within a {@link Factory#create(Creation, ReferenceSelector)} implementation
-   * immediately prior to its returning a value.</p>
+   * <p>This method is typically invoked from within a {@link Factory#create(Request)} implementation immediately prior
+   * to its returning a value.</p>
    *
    * <p>The default implementation of this method does nothing.</p>
    *

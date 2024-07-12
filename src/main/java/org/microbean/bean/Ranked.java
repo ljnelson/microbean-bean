@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2023 microBean™.
+ * Copyright © 2023–2024 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -17,11 +17,15 @@ public interface Ranked {
 
   public static final int DEFAULT_RANK = 0;
 
-  // Highest rank wins.
+  // Highest rank wins
   public default int rank() {
     return DEFAULT_RANK;
   }
 
+  public default boolean alternate() {
+    return false;
+  }
+  
   public default boolean outranks(final Ranked other) {
     return other == null || this.rank() > other.rank();
   }

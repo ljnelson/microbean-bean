@@ -51,7 +51,6 @@ public class AbstractInitializer<I> implements Initializer<I> {
    */
 
 
-  // TODO: c and r go together, always, so anytime you need an r you need a c.
   @Override // Initializer<I>
   public I initialize(final I i, final Request<I> r) {
     return i;

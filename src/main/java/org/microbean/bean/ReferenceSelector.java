@@ -13,7 +13,7 @@
  */
 package org.microbean.bean;
 
-public interface ReferenceSelector {
+interface ReferenceSelector {
 
 
   /*
@@ -24,17 +24,19 @@ public interface ReferenceSelector {
   // Yes, this is needed. Consider: the beanSelectionCriteria actually selects two beans. If you want a reference, you
   // have to say which one of the matched beans you want to use. You can't just use Id because you're going to need the
   // Factory<R> eventually.
-  public <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Bean<R> bean, final Creation<R> creation);
+  //
+  // Must throw an exception if !beanSelectionCriteria.selects(bean)
+  <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Bean<R> bean, final Creation<R> creation);
 
   /*
    * Default methods.
    */
 
-  public default <R> R reference(final BeanSelection<R> beanSelection, final Creation<R> creation) {
-    return this.reference(beanSelection.beanSelectionCriteria(), beanSelection.bean(), creation);
+  default <R> R reference(final BeanReduction<R> beanReduction, final Creation<R> creation) {
+    return this.reference(beanReduction.beanSelectionCriteria(), beanReduction.bean(), creation);
   }
 
-  public default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Creation<R> creation) {
+  default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Creation<R> creation) {
     return this.reference(beanSelectionCriteria, null, creation);
   }
 
