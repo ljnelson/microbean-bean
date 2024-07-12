@@ -22,17 +22,21 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.SequencedSet;
 
+import org.microbean.lang.TypeAndElementSource;
+
+import org.microbean.lang.visitor.Visitors;
+
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 
 import static org.microbean.bean.ConstantDescs.CD_Bean;
 import static org.microbean.bean.ConstantDescs.CD_Factory;
 import static org.microbean.bean.ConstantDescs.CD_Id;
 
-public final record Bean<I>(Id id, Factory<I> factory) implements Aggregate, Alternate, Constable {
+public final record Bean<I>(Id id, Factory<I> factory) implements Aggregate, Constable, Ranked {
 
   public Bean {
-    id = Objects.requireNonNull(id, "id");
-    factory = Objects.requireNonNull(factory, "factory");
+    Objects.requireNonNull(id, "id");
+    Objects.requireNonNull(factory, "factory");
   }
 
   @Override // Alternate

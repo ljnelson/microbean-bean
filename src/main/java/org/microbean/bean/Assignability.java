@@ -57,7 +57,7 @@ import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
  * @see #matches(TypeMirror, TypeMirror)
  */
 // Applies CDI assignability semantics to types.
-public final class Assignability implements Constable {
+public class Assignability implements Constable {
 
 
   /*
@@ -105,7 +105,7 @@ public final class Assignability implements Constable {
 
 
   @Override // Constable
-  public final Optional<? extends ConstantDesc> describeConstable() {
+  public Optional<? extends ConstantDesc> describeConstable() {
     if (this.tes instanceof Constable c) {
       return c.describeConstable()
         .map(tesDesc -> DynamicConstantDesc.of(BSM_INVOKE,
@@ -164,7 +164,7 @@ public final class Assignability implements Constable {
    * @exception NullPointerException if either argument is {@code null}
    */
   // Is the payload assignable to the receiver? That is, does the payload "match the receiver", in CDI parlance?
-  public final boolean matches(final TypeMirror receiver, final TypeMirror payload) {
+  public boolean matches(final TypeMirror receiver, final TypeMirror payload) {
     // "A bean is assignable to a given injection point if:
     //
     // "The bean has a bean type [payload] that matches the required type [receiver]. For this purpose..."

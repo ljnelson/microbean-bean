@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2023 microBean™.
+ * Copyright © 2024 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -13,26 +13,29 @@
  */
 package org.microbean.bean;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.SequencedSet;
 
-public record BeanSelection(BeanSelectionCriteria beanSelectionCriteria, List<Bean<?>> beans) {
+public record BeanReduction<I>(BeanSelection beanSelection, Bean<I> bean) {
 
-  public BeanSelection {
-    Objects.requireNonNull(beanSelectionCriteria, "beanSelectionCriteria");
-    beans = beans == null || beans.isEmpty() ? List.of() : List.copyOf(beans);
-    for (final Bean<?> bean : beans) {
-      if (!beanSelectionCriteria.selects(bean)) {
-        throw new IllegalArgumentException("beanSelectionCriteria: " + beanSelectionCriteria + "; beans: " + beans);
-      }
+  public BeanReduction(final BeanSelectionCriteria beanSelectionCriteria, final Bean<I> bean) {
+    this(new BeanSelection(beanSelectionCriteria, List.of(bean)), bean);
+  }
+  
+  public BeanReduction {
+    if (!beanSelection.contains(Objects.requireNonNull(bean, "bean"))) {
+      throw new IllegalArgumentException("beanSelection: " + beanSelection + "; bean: " + bean);
     }
   }
 
-  public final boolean contains(final Bean<?> bean) {
-    return this.beans().contains(bean);
+  public final BeanSelectionCriteria beanSelectionCriteria() {
+    return this.beanSelection().beanSelectionCriteria();
+  }
+
+  @SuppressWarnings("unchecked")
+  public <J> BeanReduction<J> cast() {
+    return (BeanReduction<J>)this;
   }
   
 }

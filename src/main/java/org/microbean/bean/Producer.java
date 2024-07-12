@@ -52,8 +52,7 @@ public interface Producer<I> extends Aggregate {
    * Produces a new contextual instance and returns it, possibly (often) making use of the supplied, dependent,
    * contextual references.
    *
-   * <p>Implementations of this method must not call {@link #produce(Creation, ReferenceSelector)} or an infinite loop
-   * may result.</p>
+   * <p>Implementations of this method must not call {@link #produce(Request)} or an infinite loop may result.</p>
    *
    * @param dependentContextualReferences a {@link List} of other objects this {@link Producer} needs to create the contextual
    * instance; must not be {@code null}

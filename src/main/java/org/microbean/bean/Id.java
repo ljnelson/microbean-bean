@@ -31,9 +31,12 @@ import org.microbean.qualifier.NamedAttributeMap;
 import org.microbean.scope.ScopeMember;
 
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
+import static java.lang.constant.ConstantDescs.CD_boolean;
 import static java.lang.constant.ConstantDescs.CD_int;
 import static java.lang.constant.ConstantDescs.CD_List;
 import static java.lang.constant.ConstantDescs.CD_Object;
+import static java.lang.constant.ConstantDescs.FALSE;
+import static java.lang.constant.ConstantDescs.TRUE;
 
 import static org.microbean.bean.ConstantDescs.CD_Id;
 import static org.microbean.bean.ConstantDescs.CD_BeanTypeList;
@@ -43,31 +46,39 @@ import static org.microbean.qualifier.ConstantDescs.CD_NamedAttributeMap;
 public final record Id(BeanTypeList types,
                        List<NamedAttributeMap<?>> attributes,
                        NamedAttributeMap<?> governingScopeId,
+                       boolean alternate,
                        int rank)
-  implements Alternate, Constable, ScopeMember {
+  implements Constable, Ranked, ScopeMember {
 
   public Id(final TypeMirror type,
             final List<NamedAttributeMap<?>> attributes,
             final NamedAttributeMap<?> governingScopeId) {
-    this(new BeanTypeList(type), attributes, governingScopeId, Ranked.DEFAULT_RANK);
+    this(new BeanTypeList(type), attributes, governingScopeId, false, Ranked.DEFAULT_RANK);
   }
 
   public Id(final Collection<? extends TypeMirror> types,
             final List<NamedAttributeMap<?>> attributes,
             final NamedAttributeMap<?> governingScopeId) {
-    this(new BeanTypeList(types), attributes, governingScopeId, Ranked.DEFAULT_RANK);
+    this(new BeanTypeList(types), attributes, governingScopeId, false, Ranked.DEFAULT_RANK);
   }
 
   public Id(final BeanTypeList types,
             final List<NamedAttributeMap<?>> attributes,
             final NamedAttributeMap<?> governingScopeId) {
-    this(types, attributes, governingScopeId, Ranked.DEFAULT_RANK);
+    this(types, attributes, governingScopeId, false, Ranked.DEFAULT_RANK);
+  }
+
+  public Id(final BeanTypeList types,
+            final List<NamedAttributeMap<?>> attributes,
+            final NamedAttributeMap<?> governingScopeId,
+            final int rank) {
+    this(types, attributes, governingScopeId, false, rank);
   }
 
   public Id {
-    types = Objects.requireNonNull(types, "types");
+    Objects.requireNonNull(types, "types");
     attributes = List.copyOf(attributes);
-    governingScopeId = Objects.requireNonNull(governingScopeId, "governingScopeId");
+    Objects.requireNonNull(governingScopeId, "governingScopeId");
   }
 
   @Override // Constable
@@ -80,10 +91,12 @@ public final record Id(BeanTypeList types,
                                                                                                 CD_BeanTypeList,
                                                                                                 CD_List,
                                                                                                 CD_NamedAttributeMap,
+                                                                                                CD_boolean,
                                                                                                 CD_int),
                                                                  typesDesc,
                                                                  attributesDesc,
                                                                  governingScopeIdDesc,
+                                                                 this.alternate() ? TRUE : FALSE,
                                                                  this.rank()))));
   }
 

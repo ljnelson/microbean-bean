@@ -28,7 +28,7 @@ public final class ExperimentalFunctions {
   }
 
   /**
-   * Returns a {@link BiFunction} that will resolve dependencies using the supplied {@link ReferenceSelector}.
+   * Returns a {@link BiFunction} that will resolve dependencies.
    *
    * @param <E> the type of thing the returned dependency resolver can resolve dependencies for; normally something
    * (such as a {@link javax.lang.model.element.VariableElement} or {@link java.lang.reflect.Parameter} or {@link
@@ -43,7 +43,7 @@ public final class ExperimentalFunctions {
    *
    * @param rs a {@link BiFunction} that accepts a {@link BeanSelectionCriteria} and a {@link Creation} and returns a
    * resolved dependency, which may be {@code null}; must not be {@code null}; normally {@link
-   * ReferenceSelector#reference(BeanSelectionCriteria, Creation) ReferenceSelector::reference}
+   * Request#reference(BeanSelectionCriteria, Creation) Request::reference}
    *
    * @return a {@link BiFunction} that accepts a key and a {@link Creation} and returns a resolved dependency suitable
    * for that key; never {@code null}
@@ -57,7 +57,7 @@ public final class ExperimentalFunctions {
     Objects.requireNonNull(rs, "rs");
     final BiFunction<? super Creation<?>, ? super E, ? extends Creation<?>> cf =
       optionalCf == null ? ExperimentalFunctions::returnFirstArgument : optionalCf;
-    return (e, c) -> Optional.ofNullable(bscf.apply(e)).map(bsc -> rs.apply(bsc, cf.apply(c, e))).orElseThrow(UnsatisfiedResolutionException::new);
+    return (e, c) -> Optional.ofNullable(bscf.apply(e)).map(bsc -> rs.apply(bsc, cf.apply(c, e))).orElseThrow(UnsatisfiedReductionException::new);
   }
 
   // (For setting up InvocationContexts for interceptors.)

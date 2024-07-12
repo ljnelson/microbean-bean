@@ -62,17 +62,6 @@ public interface AutoCloseableRegistry extends AutoCloseable {
   @Override // AutoCloseable
   public void close();
 
-  /*
-   * Returns {@code true} if and only if this {@link AutoCloseableRegistry} has been {@linkplain #close() closed}.
-   *
-   * @return {@code true} if and only if this {@link AutoCloseableRegistry} has been {@linkplain #close() closed}
-   *
-   * @idempotency Implementations of this method must be idempotent.
-   *
-   * @threadsafety Implementations of this method must be safe for concurrent use by multiple threads.
-   */
-  // public boolean closed();
-
   /**
    * If this {@link AutoCloseableRegistry} is not {@linkplain #closed() closed}, and if the supplied {@link
    * AutoCloseable} has not yet been registered, registers it such that it will be {@linkplain AutoCloseable#close()
@@ -88,7 +77,6 @@ public interface AutoCloseableRegistry extends AutoCloseable {
    *
    * @exception NullPointerException if {@code c} is {@code null}
    */
-  // @Deprecated(forRemoval = true) // should be an implementation detail of newChild()
   public boolean register(final AutoCloseable c);
 
 }
