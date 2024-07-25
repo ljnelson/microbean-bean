@@ -15,6 +15,7 @@ package org.microbean.bean;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.Constable;
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
@@ -34,8 +35,8 @@ import javax.lang.model.type.TypeMirror;
 import org.microbean.constant.Constables;
 
 import org.microbean.lang.Equality;
-import org.microbean.lang.Lang;
 import org.microbean.lang.NameTypeMirrorComparator;
+import org.microbean.lang.SameTypeEquality;
 import org.microbean.lang.SpecializationDepthTypeMirrorComparator;
 import org.microbean.lang.TypeAndElementSource;
 
@@ -47,11 +48,14 @@ import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 import static java.lang.constant.ConstantDescs.CD_int;
 import static java.lang.constant.ConstantDescs.CD_List;
 
+import static org.microbean.lang.ConstantDescs.CD_Equality;
+import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
+
 class ReferenceTypeList implements Constable {
 
-  static final ClassDesc CD_Equality = ClassDesc.of(Equality.class.getName());
-
   final Equality equality;
+
+  final TypeAndElementSource tes;
 
   final int classesIndex;
 
@@ -63,31 +67,30 @@ class ReferenceTypeList implements Constable {
 
   private final int hashCode;
 
-  public ReferenceTypeList(final TypeMirror type) {
-    this(List.of(type), null, Lang.typeAndElementSource(), Lang.sameTypeEquality());
+  public ReferenceTypeList(final Collection<? extends TypeMirror> types,
+                           final TypeAndElementSource typeAndElementSource) {
+    this(types, null, typeAndElementSource, null);
   }
 
-  public ReferenceTypeList(final Collection<? extends TypeMirror> types) {
-    this(types, null, Lang.typeAndElementSource(), Lang.sameTypeEquality());
+  public ReferenceTypeList(final Collection<? extends TypeMirror> types,
+                           final TypeAndElementSource typeAndElementSource,
+                           final Equality equality) {
+    this(types, null, typeAndElementSource, equality);
   }
 
-  public ReferenceTypeList(final Collection<? extends TypeMirror> types, final TypeAndElementSource typeAndElementSource) {
-    this(types, null, typeAndElementSource, Lang.sameTypeEquality());
-  }
-
-  public ReferenceTypeList(final Collection<? extends TypeMirror> types, final Predicate<? super TypeMirror> typeFilter, final TypeAndElementSource typeAndElementSource) {
-    this(types, typeFilter, typeAndElementSource, Lang.sameTypeEquality());
+  public ReferenceTypeList(final Collection<? extends TypeMirror> types,
+                           final Predicate<? super TypeMirror> typeFilter, // the type supplied will be a DeclaredType (a DelegatingTypeMirror) and will be ARRAY, DECLARED or TYPEVAR
+                           final TypeAndElementSource typeAndElementSource) {
+    this(types, typeFilter, typeAndElementSource, null);
   }
 
   public ReferenceTypeList(final Collection<? extends TypeMirror> types,
                            Predicate<? super TypeMirror> typeFilter, // the type supplied will be a DeclaredType (a DelegatingTypeMirror) and will be ARRAY, DECLARED or TYPEVAR
-                           TypeAndElementSource typeAndElementSource,
+                           final TypeAndElementSource typeAndElementSource,
                            final Equality equality) {
     super();
-    if (typeAndElementSource == null) {
-      typeAndElementSource = Lang.typeAndElementSource();
-    }
-    this.equality = equality == null ? Lang.sameTypeEquality() : equality;
+    this.tes = Objects.requireNonNull(typeAndElementSource, "typeAndElementSource");
+    this.equality = equality == null ? new SameTypeEquality(typeAndElementSource) : equality;
     if (types.isEmpty()) {
       this.types = List.of();
       this.classesIndex = -1;
@@ -96,7 +99,7 @@ class ReferenceTypeList implements Constable {
     } else {
       typeFilter =
         typeFilter == null ? ReferenceTypeList::validateType : ((Predicate<TypeMirror>)ReferenceTypeList::validateType).and(typeFilter);
-      final List<DelegatingTypeMirror> newTypes = new ArrayList<>(types.size());
+      final ArrayList<DelegatingTypeMirror> newTypes = new ArrayList<>(types.size());
       for (final TypeMirror t : types) {
         final DelegatingTypeMirror dt = DelegatingTypeMirror.of(t, typeAndElementSource, this.equality);
         if (!this.seen(newTypes, dt) && typeFilter.test(dt)) {
@@ -145,6 +148,7 @@ class ReferenceTypeList implements Constable {
             throw new AssertionError("non-reference type: " + newType);
           }
         }
+        newTypes.trimToSize();
         this.types = Collections.unmodifiableList(newTypes);
         this.classesIndex = classesIndex;
         this.arraysIndex = arraysIndex;
@@ -160,32 +164,37 @@ class ReferenceTypeList implements Constable {
                     final int classesIndex,
                     final int arraysIndex,
                     final int interfacesIndex,
-                    final Equality equality) {
+                    final Equality equality,
+                    final TypeAndElementSource tes) {
     super();
     this.types = types;
     this.classesIndex = classesIndex;
     this.arraysIndex = arraysIndex;
     this.interfacesIndex = interfacesIndex;
     this.equality = equality;
+    this.tes = tes;
     this.hashCode = types.hashCode();
   }
 
   @Override // Constable
   public Optional<DynamicConstantDesc<?>> describeConstable() {
-    return Constables.describeConstable(this.types(), Lang::describeConstable)
+    return Constables.describeConstable(this.types(), this.tes::describeConstable)
       .flatMap(typesDesc -> this.equality.describeConstable()
-               .map(equalityDesc -> DynamicConstantDesc.of(BSM_INVOKE,
-                                                           MethodHandleDesc.ofConstructor(ClassDesc.of(this.getClass().getName()),
-                                                                                          CD_List,
-                                                                                          CD_int,
-                                                                                          CD_int,
-                                                                                          CD_int,
-                                                                                          CD_Equality),
-                                                           typesDesc,
-                                                           this.classesIndex,
-                                                           this.arraysIndex,
-                                                           this.interfacesIndex,
-                                                           equalityDesc)));
+               .flatMap(equalityDesc -> (this.tes instanceof Constable c ? c.describeConstable() : Optional.<ConstantDesc>empty())
+                        .map(tesDesc -> DynamicConstantDesc.of(BSM_INVOKE,
+                                                               MethodHandleDesc.ofConstructor(ClassDesc.of(this.getClass().getName()),
+                                                                                              CD_List,
+                                                                                              CD_int,
+                                                                                              CD_int,
+                                                                                              CD_int,
+                                                                                              CD_Equality,
+                                                                                              CD_TypeAndElementSource),
+                                                               typesDesc,
+                                                               this.classesIndex,
+                                                               this.arraysIndex,
+                                                               this.interfacesIndex,
+                                                               equalityDesc,
+                                                               tesDesc))));
   }
 
   public final List<? extends TypeMirror> types() {
@@ -262,18 +271,20 @@ class ReferenceTypeList implements Constable {
    */
 
 
-  public static ReferenceTypeList closure(final TypeMirror t) {
-    return closure(t, ReferenceTypeList::validateType, new Visitors(Lang.typeAndElementSource()));
-  }
-
-  public static ReferenceTypeList closure(final TypeMirror t, final Visitors visitors) {
-    return closure(t, ReferenceTypeList::validateType, visitors);
+  public static ReferenceTypeList closure(final TypeMirror t,
+                                          final TypeAndElementSource typeAndElementSource) {
+    return closure(t, null, new Visitors(typeAndElementSource));
   }
 
   public static ReferenceTypeList closure(final TypeMirror t,
                                           final Predicate<? super TypeMirror> typeFilter,
                                           final TypeAndElementSource typeAndElementSource) {
     return closure(t, typeFilter, new Visitors(typeAndElementSource));
+  }
+
+  public static ReferenceTypeList closure(final TypeMirror t,
+                                          final Visitors visitors) {
+    return closure(t, null, visitors);
   }
 
   public static ReferenceTypeList closure(final TypeMirror t,

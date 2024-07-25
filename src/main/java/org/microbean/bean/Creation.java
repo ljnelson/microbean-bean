@@ -16,8 +16,7 @@ package org.microbean.bean;
 /**
  * A representation of a {@link Factory}'s {@linkplain Factory#create(Request) creation activity}.
  *
- * <p>Most {@link Creation} implementations will, and should, also be {@link AutoCloseableRegistry} implementations.
- * See {@link DefaultCreation} as one arbitrary example.</p>
+ * <p>Most {@link Creation} implementations will, and should, also be {@link AutoCloseableRegistry} implementations.</p>
  *
  * @param <I> the type of instance being created
  *

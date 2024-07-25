@@ -28,7 +28,7 @@ public class UnsatisfiedReductionException extends ReductionException {
   public UnsatisfiedReductionException(final String message) {
     super(message);
   }
-  
+
   public UnsatisfiedReductionException(final Object criteria,
                                        final String message) {
     super(criteria, message);

@@ -17,7 +17,7 @@ import java.util.Objects;
 
 // TODO: this is mildly fouled up. The spirit is right but the implementation is not so hot.
 @Deprecated
-public abstract class AbstractFactory<I> implements Factory<I> {
+abstract class AbstractFactory<I> implements Factory<I> {
 
   private static final Initializer<?> PASSTHROUGH_INITIALIZER = new AbstractInitializer<Object>();
 

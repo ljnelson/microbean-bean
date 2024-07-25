@@ -18,5 +18,5 @@ public abstract class AbstractProducer<I> implements Producer<I> {
   protected AbstractProducer() {
     super();
   }
-  
+
 }

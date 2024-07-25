@@ -13,11 +13,8 @@
  */
 package org.microbean.bean;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.SequencedSet;
 
 public record BeanSelection(BeanSelectionCriteria beanSelectionCriteria, List<Bean<?>> beans) {
 
@@ -34,5 +31,5 @@ public record BeanSelection(BeanSelectionCriteria beanSelectionCriteria, List<Be
   public final boolean contains(final Bean<?> bean) {
     return this.beans().contains(bean);
   }
-  
+
 }

@@ -14,7 +14,6 @@
 package org.microbean.bean;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,9 +36,9 @@ public final class ExperimentalFunctions {
    * @param bscf a {@link Function} that accepts an argument and returns a suitable {@link BeanSelectionCriteria} (or
    * {@code null}); must not be {@code null}
    *
-   * @param optionalCf a {@link BiFunction} that accepts a {@link Creation} and an {@link Element} and returns a
-   * suitable {@link Creation} (almost always the supplied {@link Creation}, but possibly a different one to account for
-   * transient references); may be {@code null}
+   * @param optionalCf a {@link BiFunction} that accepts a {@link Creation} and something like a {@link
+   * javax.lang.model.element.VariableElement} and returns a suitable {@link Creation} (almost always the supplied
+   * {@link Creation}, but possibly a different one to account for transient references); may be {@code null}
    *
    * @param rs a {@link BiFunction} that accepts a {@link BeanSelectionCriteria} and a {@link Creation} and returns a
    * resolved dependency, which may be {@code null}; must not be {@code null}; normally {@link
@@ -75,9 +74,9 @@ public final class ExperimentalFunctions {
     return arguments(es, c, dr).toArray();
   }
 
-  
+
   private static final <X, Y> X returnFirstArgument(final X x, final Y y) {
     return x;
   }
-  
+
 }

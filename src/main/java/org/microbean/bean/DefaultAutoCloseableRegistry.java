@@ -14,7 +14,6 @@
 package org.microbean.bean;
 
 import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Set;
 
 import java.util.concurrent.locks.Lock;

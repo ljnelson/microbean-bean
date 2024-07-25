@@ -14,9 +14,6 @@
 package org.microbean.bean;
 
 import java.util.List;
-import java.util.SequencedSet;
-
-import javax.lang.model.element.VariableElement;
 
 // Subordinate to Factory<I>.
 // Akin to CDI's Producer.
@@ -60,8 +57,6 @@ public interface Producer<I> extends Aggregate {
    * @return a new contextual instance, or {@code null}
    *
    * @exception NullPointerException if {@code dependentContextualReferences} is {@code null}
-   *
-   * @see 
    */
   public I produce(final List<?> dependentContextualReferences);
 

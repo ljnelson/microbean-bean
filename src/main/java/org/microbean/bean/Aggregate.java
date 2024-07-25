@@ -44,7 +44,7 @@ public interface Aggregate {
   public default List<Assignment> assign(final Request<?> r) {
     final Collection<? extends Dependency> ds = this.dependencies();
     return ds == null || ds.isEmpty() ? List.of() : ds.stream()
-      .map(d -> d.assign(r))
+      .map(d -> Assignment.of(d, r))
       .toList();
   }
 

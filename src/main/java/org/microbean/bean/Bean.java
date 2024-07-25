@@ -22,10 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.SequencedSet;
 
-import org.microbean.lang.TypeAndElementSource;
-
-import org.microbean.lang.visitor.Visitors;
-
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 
 import static org.microbean.bean.ConstantDescs.CD_Bean;

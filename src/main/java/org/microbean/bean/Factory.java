@@ -19,7 +19,6 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
 import java.util.Optional;
-import java.util.SequencedSet;
 
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 

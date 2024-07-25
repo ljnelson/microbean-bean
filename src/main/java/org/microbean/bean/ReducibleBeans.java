@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ReducibleBeans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reducible<BeanSelectionCriteria, Bean<?>> {
 
   private final Map<BeanSelectionCriteria, Bean<?>> reductions;
-  
+
   private final Selectable<BeanSelectionCriteria, Bean<?>> f;
 
   private final Reducer<BeanSelectionCriteria, Bean<?>> r;
@@ -40,7 +40,7 @@ public final class ReducibleBeans implements Selectable<BeanSelectionCriteria, B
   public final List<Bean<?>> select(final BeanSelectionCriteria c) {
     return this.f.select(c);
   }
-  
+
   @Override // ReducibleBeans (Reducible<BeanSelectionCriteria, Bean<?>>)
   public final Bean<?> reduce(final BeanSelectionCriteria c) {
     return reductions.computeIfAbsent(c, this::computeReduction);

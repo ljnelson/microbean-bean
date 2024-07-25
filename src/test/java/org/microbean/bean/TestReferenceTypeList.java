@@ -27,6 +27,8 @@ import javax.lang.model.type.TypeVariable;
 import org.junit.jupiter.api.Test;
 
 import org.microbean.lang.Lang;
+import org.microbean.lang.SameTypeEquality;
+import org.microbean.lang.TypeAndElementSource;
 
 import org.microbean.lang.type.DelegatingTypeMirror;
 
@@ -36,11 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import static org.microbean.lang.Lang.arrayType;
-import static org.microbean.lang.Lang.declaredType;
-import static org.microbean.lang.Lang.sameType;
-import static org.microbean.lang.Lang.typeElement;
 import static org.microbean.lang.Lang.unwrap;
+
 
 final class TestReferenceTypeList {
 
@@ -51,7 +50,7 @@ final class TestReferenceTypeList {
   @Test
   final void testInterfacesOnly() {
     final TypeMirror s = Lang.declaredType("java.io.Serializable");
-    final ReferenceTypeList rtl = ReferenceTypeList.closure(s);
+    final ReferenceTypeList rtl = ReferenceTypeList.closure(s, Lang.typeAndElementSource());
     final List<? extends TypeMirror> types = rtl.types();
     System.out.println("*** types: " + types);
 
@@ -59,20 +58,21 @@ final class TestReferenceTypeList {
 
   @Test
   final <T> void testSorting() {
+    final TypeAndElementSource tes = Lang.typeAndElementSource();
     final List<TypeMirror> l = new ArrayList<>();
-    final TypeMirror object = declaredType(Object.class);
+    final TypeMirror object = tes.declaredType(Object.class);
     assertTrue(object instanceof DelegatingTypeMirror);
     l.add(object);
-    final TypeMirror mapStringString = declaredType(null, typeElement(Map.class), declaredType(String.class), declaredType(String.class));
+    final TypeMirror mapStringString = tes.declaredType(null, tes.typeElement(Map.class), tes.declaredType(String.class), tes.declaredType(String.class));
     assertTrue(mapStringString instanceof DelegatingTypeMirror);
     l.add(mapStringString);
-    final TypeMirror concurrentMapStringString = declaredType(null, typeElement(ConcurrentMap.class), declaredType(String.class), declaredType(String.class));
+    final TypeMirror concurrentMapStringString = tes.declaredType(null, tes.typeElement(ConcurrentMap.class), tes.declaredType(String.class), tes.declaredType(String.class));
     assertTrue(concurrentMapStringString instanceof DelegatingTypeMirror);
     l.add(concurrentMapStringString);
-    final TypeMirror objectArray = arrayType(Object[].class);
+    final TypeMirror objectArray = tes.arrayType(Object[].class);
     assertTrue(objectArray instanceof DelegatingTypeMirror);
     l.add(objectArray);
-    final ReferenceTypeList rtl = new ReferenceTypeList(l);
+    final ReferenceTypeList rtl = new ReferenceTypeList(l, null, tes, new SameTypeEquality(tes));
     List<? extends TypeMirror> types = rtl.types();
     assertEquals(4, types.size());
     assertSame(object, types.get(0));
@@ -95,17 +95,18 @@ final class TestReferenceTypeList {
 
   @Test
   final void testClosure() {
-    final TypeMirror string = declaredType(String.class);
-    final ReferenceTypeList rtl = ReferenceTypeList.closure(string);
+    final TypeAndElementSource tes = Lang.typeAndElementSource();
+    final TypeMirror string = tes.declaredType(String.class);
+    final ReferenceTypeList rtl = ReferenceTypeList.closure(string, tes);
     final List<? extends TypeMirror> types = rtl.types();
     assertEquals(7, types.size());
     assertSame(string, types.get(0));
-    assertSame(unwrap(declaredType(Object.class)), unwrap(types.get(1)));
-    assertSame(unwrap(declaredType(java.io.Serializable.class)), unwrap(types.get(2)));
-    assertSame(unwrap(declaredType(CharSequence.class)), unwrap(types.get(3)));
-    assertTrue(sameType(unwrap(declaredType(null, typeElement(Comparable.class), declaredType(String.class))), unwrap(types.get(4))));
-    assertSame(unwrap(declaredType(java.lang.constant.Constable.class)), unwrap(types.get(5)));
-    assertSame(unwrap(declaredType(java.lang.constant.ConstantDesc.class)), unwrap(types.get(6)));
+    assertSame(unwrap(tes.declaredType(Object.class)), unwrap(types.get(1)));
+    assertSame(unwrap(tes.declaredType(java.io.Serializable.class)), unwrap(types.get(2)));
+    assertSame(unwrap(tes.declaredType(CharSequence.class)), unwrap(types.get(3)));
+    assertTrue(tes.sameType(unwrap(tes.declaredType(null, tes.typeElement(Comparable.class), tes.declaredType(String.class))), unwrap(types.get(4))));
+    assertSame(unwrap(tes.declaredType(java.lang.constant.Constable.class)), unwrap(types.get(5)));
+    assertSame(unwrap(tes.declaredType(java.lang.constant.ConstantDesc.class)), unwrap(types.get(6)));
   }
 
   @Test

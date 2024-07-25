@@ -26,17 +26,17 @@ interface ReferenceSelector {
   // Factory<R> eventually.
   //
   // Must throw an exception if !beanSelectionCriteria.selects(bean)
-  <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Bean<R> bean, final Creation<R> creation);
+  public <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Bean<R> bean, final Creation<R> creation);
 
   /*
    * Default methods.
    */
 
-  default <R> R reference(final BeanReduction<R> beanReduction, final Creation<R> creation) {
+  public default <R> R reference(final BeanReduction<R> beanReduction, final Creation<R> creation) {
     return this.reference(beanReduction.beanSelectionCriteria(), beanReduction.bean(), creation);
   }
 
-  default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Creation<R> creation) {
+  public default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Creation<R> creation) {
     return this.reference(beanSelectionCriteria, null, creation);
   }
 

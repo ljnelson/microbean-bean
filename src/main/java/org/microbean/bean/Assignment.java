@@ -25,7 +25,11 @@ public record Assignment(Dependency dependency, Object value) {
   // Re-ups this assignment and returns a new one.
   // Convenience
   public final Assignment replace(final Request<?> r) {
-    return this.dependency().assign(r);
+    return of(this.dependency(), r);
+  }
+
+  public static final Assignment of(final Dependency d, final Request<?> r) {
+    return new Assignment(d, r.reference(d.beanSelectionCriteria(), r));
   }
 
 }
