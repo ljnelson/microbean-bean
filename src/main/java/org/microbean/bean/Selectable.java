@@ -22,8 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.function.BiFunction;
 
-import java.util.stream.Stream;
-
 public interface Selectable<C, T> {
 
   // Filters this thing according to the supplied criteria, producing a List.

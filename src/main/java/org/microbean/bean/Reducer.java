@@ -41,7 +41,7 @@ public interface Reducer<C, T> {
   public default T reduce(final Selectable<? super C, ? extends T> f, final C c) {
     return this.reduce(f.select(c), c, Reducer::fail);
   }
-  
+
   public default T reduce(final List<? extends T> elements, final C c) {
     return this.reduce(elements, c, Reducer::fail);
   }
@@ -70,5 +70,5 @@ public interface Reducer<C, T> {
   public static <A, B, C> C returnNull(final A a, final B b) {
     return null;
   }
-  
+
 }

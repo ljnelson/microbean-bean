@@ -28,11 +28,14 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import org.microbean.constant.Constables;
 
 import org.microbean.lang.Lang;
+import org.microbean.lang.SameTypeEquality;
+import org.microbean.lang.TypeAndElementSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -50,8 +53,15 @@ import static org.microbean.scope.Scope.SINGLETON_ID;
 
 final class TestConstableSemantics {
 
+  private static TypeAndElementSource tes;
+  
   private TestConstableSemantics() {
     super();
+  }
+
+  @BeforeAll
+  static final void initializeTes() {
+    tes = Lang.typeAndElementSource();
   }
 
   @Test
@@ -62,14 +72,18 @@ final class TestConstableSemantics {
 
   @Test
   final void testReferenceTypeList() throws ReflectiveOperationException {
-    final ReferenceTypeList list = new ReferenceTypeList(List.of(Lang.declaredType(String.class), Lang.declaredType(Object.class)));
+    final ReferenceTypeList list =
+      new ReferenceTypeList(List.of(tes.declaredType(String.class), tes.declaredType(Object.class)),
+                            null,
+                            tes,
+                            new SameTypeEquality(tes));
     assertEquals(list, Constables.describeConstable(list).orElseThrow().resolveConstantDesc(privateLookupIn(ReferenceTypeList.class, lookup())));
   }
 
   @Test
   final void testId() throws ReflectiveOperationException {
     final Id id =
-      new Id(List.of(Lang.declaredType(String.class), Lang.declaredType(Object.class)),
+      new Id(new BeanTypeList(List.of(tes.declaredType(String.class), tes.declaredType(Object.class)), tes, new SameTypeEquality(tes)),
              anyAndDefaultQualifiers(),
              SINGLETON_ID);
     assertEquals(id, Constables.describeConstable(id).orElseThrow().resolveConstantDesc(privateLookupIn(ReferenceTypeList.class, lookup())));

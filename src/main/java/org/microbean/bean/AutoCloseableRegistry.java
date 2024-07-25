@@ -26,13 +26,12 @@ package org.microbean.bean;
 public interface AutoCloseableRegistry extends AutoCloseable {
 
   /**
-   * Returns a new {@link AutoCloseableRegistry} instance that is not {@linkplain #closed() closed} and has no
-   * {@linkplain #register(AutoCloseable)} registrations, that is logically a child of this {@link
-   * AutoCloseableRegistry} instance.
+   * Returns a new {@link AutoCloseableRegistry} instance that is not closed and has no {@linkplain
+   * #register(AutoCloseable)} registrations, that is logically a child of this {@link AutoCloseableRegistry} instance.
    *
    * <p>The new child instance will be {@linkplain #register(AutoCloseable) registered} with this {@link
-   * AutoCloseableRegistry} if this {@link AutoCloseableRegistry} is not {@linkplain #closed() closed} for subsequent
-   * closing when this {@link AutoCloseableRegistry} is {@linkplain #close() closed}.</p>
+   * AutoCloseableRegistry} if this {@link AutoCloseableRegistry} is not closed, for subsequent closing when this {@link
+   * AutoCloseableRegistry} is {@linkplain #close() closed}.</p>
    *
    * @return a new {@link AutoCloseableRegistry} that is a child of this one
    *
@@ -44,8 +43,6 @@ public interface AutoCloseableRegistry extends AutoCloseable {
    * @threadsafety Implementations of this method must be safe for concurrent use by multiple threads.
    *
    * @see Cloneable
-   *
-   * @see #closed()
    *
    * @see #register(AutoCloseable)
    */
@@ -63,17 +60,16 @@ public interface AutoCloseableRegistry extends AutoCloseable {
   public void close();
 
   /**
-   * If this {@link AutoCloseableRegistry} is not {@linkplain #closed() closed}, and if the supplied {@link
-   * AutoCloseable} has not yet been registered, registers it such that it will be {@linkplain AutoCloseable#close()
-   * closed} when this {@link AutoCloseableRegistry} is {@linkplain #close() closed}, and returns {@code true}.
+   * If this {@link AutoCloseableRegistry} is not closed, and if the supplied {@link AutoCloseable} has not yet been
+   * registered, registers it such that it will be {@linkplain AutoCloseable#close() closed} when this {@link
+   * AutoCloseableRegistry} is {@linkplain #close() closed}, and returns {@code true}.
    *
    * <p>This method takes no action and returns {@code false} in all other cases.</p>
    *
    * @param c the {@link AutoCloseable} to register; must not be {@code null}
    *
-   * @return {@code true} if and only if this {@link AutoCloseableRegistry} is not {@linkplain #closed() closed} and the
-   * supplied {@link AutoCloseable} is not already registered and registration completed successfully; {@code false} in
-   * all other cases
+   * @return {@code true} if and only if this {@link AutoCloseableRegistry} is not closed and the supplied {@link
+   * AutoCloseable} is not already registered and registration completed successfully; {@code false} in all other cases
    *
    * @exception NullPointerException if {@code c} is {@code null}
    */

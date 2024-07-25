@@ -84,7 +84,7 @@
       <dependency>
         <groupId>org.microbean</groupId>
         <artifactId>microbean-lang</artifactId>
-        <version>0.0.14</version>
+        <version>0.0.19</version>
       </dependency>
 
       <dependency>

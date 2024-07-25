@@ -13,7 +13,6 @@
  */
 package org.microbean.bean;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -22,7 +21,7 @@ public record BeanReduction<I>(BeanSelection beanSelection, Bean<I> bean) {
   public BeanReduction(final BeanSelectionCriteria beanSelectionCriteria, final Bean<I> bean) {
     this(new BeanSelection(beanSelectionCriteria, List.of(bean)), bean);
   }
-  
+
   public BeanReduction {
     if (!beanSelection.contains(Objects.requireNonNull(bean, "bean"))) {
       throw new IllegalArgumentException("beanSelection: " + beanSelection + "; bean: " + bean);
@@ -37,5 +36,5 @@ public record BeanReduction<I>(BeanSelection beanSelection, Bean<I> bean) {
   public <J> BeanReduction<J> cast() {
     return (BeanReduction<J>)this;
   }
-  
+
 }

@@ -13,9 +13,7 @@
  */
 package org.microbean.bean;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,7 +39,7 @@ public interface Reducible<C, T> {
       failureHandler == null ? Reducer::fail : failureHandler;
     return c -> r.reduce(selectable.select(c), c, fh);
   }
-  
+
   public static <C, E> Reducible<C, E> ofCaching(final Selectable<C, E> selectable,
                                                  final Reducer<C, E> r) {
     return ofCaching(selectable, r, Reducer::fail);

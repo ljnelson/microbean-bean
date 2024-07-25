@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.microbean.constant.Constables;
 
 import org.microbean.lang.Lang;
+import org.microbean.lang.SameTypeEquality;
+import org.microbean.lang.TypeAndElementSource;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +35,8 @@ import static org.microbean.scope.Scope.SINGLETON_ID;
 
 final class TestBean {
 
+  private static final TypeAndElementSource tes = Lang.typeAndElementSource();
+  
   private TestBean() {
     super();
   }
@@ -41,7 +45,7 @@ final class TestBean {
   final void testConstableStuff() {
     final Factory<String> f = new Constant<>("Hello");
     final Id id =
-      new Id(List.of(Lang.declaredType(String.class), Lang.declaredType(Object.class)),
+      new Id(new BeanTypeList(List.of(tes.declaredType(String.class), tes.declaredType(Object.class)), tes, new SameTypeEquality(tes)),
              anyAndDefaultQualifiers(),
              SINGLETON_ID);
     assertTrue(id instanceof Constable);

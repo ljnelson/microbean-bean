@@ -14,7 +14,6 @@
 package org.microbean.bean;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import java.util.function.BiFunction;
@@ -82,9 +81,8 @@ public class RankedReducer<C, T extends Ranked> implements Reducer<C, T> {
             // The existing candidate is also an alternate but has a higher rank than the alternate, so keep it (do
             // nothing).
           }
-        } else {
-          // drop element by doing nothing
         }
+        // ...else drop element by doing nothing
       } else if (candidate == null) {
         // The incoming element is not an alternate, but that doesn't matter; the candidate is null, so accept the
         // element no matter what.
@@ -98,9 +96,8 @@ public class RankedReducer<C, T extends Ranked> implements Reducer<C, T> {
         unresolved.add(candidate);
         unresolved.add(element);
         candidate = null;
-      } else {
-        // do nothing
       }
+      // ...else do nothing
     }
 
     if (unresolved != null && !unresolved.isEmpty()) {

@@ -53,12 +53,6 @@ import static java.util.stream.Collector.Characteristics.UNORDERED;
 
 import static org.microbean.bean.ConstantDescs.CD_Beans;
 
-import static org.microbean.bean.Qualifiers.anyAndDefaultQualifiers;
-
-import static org.microbean.bean.Ranked.DEFAULT_RANK;
-
-import static org.microbean.scope.Scope.SINGLETON_ID;
-
 public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Constable {
 
   private static final Logger LOGGER = System.getLogger(Beans.class.getName());
@@ -79,7 +73,7 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
   public Beans(final Collection<? extends Bean<?>> beans) {
     this(Map.of(), beans);
   }
-  
+
   public Beans(final Map<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> selections,
                       final Collection<? extends Bean<?>> beans) {
     super();

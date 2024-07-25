@@ -14,6 +14,8 @@
 package org.microbean.bean;
 
 import java.lang.constant.ClassDesc;
+import java.lang.constant.Constable;
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
@@ -32,9 +34,9 @@ import javax.lang.model.type.TypeMirror;
 
 import org.microbean.constant.Constables;
 
-import org.microbean.lang.TypeAndElementSource;
 import org.microbean.lang.Equality;
-import org.microbean.lang.Lang;
+import org.microbean.lang.SameTypeEquality;
+import org.microbean.lang.TypeAndElementSource;
 
 import org.microbean.lang.type.DelegatingTypeMirror;
 
@@ -46,19 +48,16 @@ import static java.lang.constant.ConstantDescs.CD_List;
 
 import static java.lang.System.Logger.Level.WARNING;
 
-import static org.microbean.lang.Lang.typeAndElementSource;
-import static org.microbean.lang.Lang.sameTypeEquality;
+import static org.microbean.lang.ConstantDescs.CD_Equality;
+import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
 
 public final class BeanTypeList extends ReferenceTypeList {
 
   private static final Logger LOGGER = System.getLogger(BeanTypeList.class.getName());
 
-  public BeanTypeList(final TypeMirror type) {
-    this(List.of(type), null, typeAndElementSource(), sameTypeEquality());
-  }
-
-  public BeanTypeList(final Collection<? extends TypeMirror> types) {
-    this(types, null, typeAndElementSource(), sameTypeEquality());
+  public BeanTypeList(final Collection<? extends TypeMirror> types,
+                      final TypeAndElementSource typeAndElementSource) {
+    this(types, null, typeAndElementSource, new SameTypeEquality(typeAndElementSource));
   }
 
   public BeanTypeList(final Collection<? extends TypeMirror> types,
@@ -80,26 +79,30 @@ public final class BeanTypeList extends ReferenceTypeList {
                final int classesIndex,
                final int arraysIndex,
                final int interfacesIndex,
-               final Equality equality) {
-    super(types, classesIndex, arraysIndex, interfacesIndex, equality);
+               final Equality equality,
+               final TypeAndElementSource tes) {
+    super(types, classesIndex, arraysIndex, interfacesIndex, equality, tes);
   }
 
   @Override // Constable
   public final Optional<DynamicConstantDesc<?>> describeConstable() {
-    return Constables.describeConstable(this.types(), Lang::describeConstable)
-      .flatMap(typesDesc -> this.equality.describeConstable()
-               .map(equalityDesc -> DynamicConstantDesc.of(BSM_INVOKE,
-                                                           MethodHandleDesc.ofConstructor(ClassDesc.of(this.getClass().getName()),
-                                                                                          CD_List,
-                                                                                          CD_int,
-                                                                                          CD_int,
-                                                                                          CD_int,
-                                                                                          CD_Equality),
-                                                           typesDesc,
-                                                           this.classesIndex,
-                                                           this.arraysIndex,
-                                                           this.interfacesIndex,
-                                                           equalityDesc)));
+    return Constables.describeConstable(this.types(), this.tes::describeConstable)
+      .flatMap(typesDesc -> (this.tes instanceof Constable c ? c.describeConstable() : Optional.<ConstantDesc>empty())
+               .flatMap(tesDesc -> this.equality.describeConstable()
+                        .map(equalityDesc -> DynamicConstantDesc.of(BSM_INVOKE,
+                                                                    MethodHandleDesc.ofConstructor(ClassDesc.of(this.getClass().getName()),
+                                                                                                   CD_List,
+                                                                                                   CD_int,
+                                                                                                   CD_int,
+                                                                                                   CD_int,
+                                                                                                   CD_Equality,
+                                                                                                   CD_TypeAndElementSource),
+                                                                    typesDesc,
+                                                                    this.classesIndex,
+                                                                    this.arraysIndex,
+                                                                    this.interfacesIndex,
+                                                                    equalityDesc,
+                                                                    tesDesc))));
   }
 
 
@@ -107,10 +110,6 @@ public final class BeanTypeList extends ReferenceTypeList {
    * Static methods.
    */
 
-
-  public static final BeanTypeList closure(final TypeMirror t) {
-    return closure(t, BeanTypeList::legalBeanType, new Visitors(typeAndElementSource()));
-  }
 
   public static final BeanTypeList closure(final TypeMirror t, final TypeAndElementSource tes) {
     return closure(t, BeanTypeList::legalBeanType, new Visitors(tes));
@@ -152,10 +151,11 @@ public final class BeanTypeList extends ReferenceTypeList {
   public static final BeanTypeList closure(final TypeMirror t,
                                            final Predicate<? super TypeMirror> typeFilter,
                                            final Visitors visitors) {
+    final TypeAndElementSource tes = visitors.typeAndElementSource();
     return new BeanTypeList(visitors.typeClosureVisitor().visit(t).toList(),
                             typeFilter,
-                            visitors.typeAndElementSource(),
-                            sameTypeEquality());
+                            tes,
+                            new SameTypeEquality(tes));
   }
 
   private static final Predicate<? super TypeMirror> typeFilter(final Predicate<? super TypeMirror> typeFilter) {
@@ -166,6 +166,21 @@ public final class BeanTypeList extends ReferenceTypeList {
   /**
    * Returns {@code true} if and only if {@code t} is non-{@code null} and a <a
    * href="https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0.html#legal_bean_types">legal bean type</a>.
+   *
+   * <p>Very loosely speaking, a legal bean type is either:</p>
+   *
+   * <ul>
+   *
+   * <li>an array type whose component type is a legal bean type</li>
+   *
+   * <li>a declared type that neither is a type variable nor a parameterized type that contains, at any level, a
+   * wildcard type argument</li>
+   *
+   * <li>a primitive type</li>
+   *
+   * </ul>
+   *
+   * <p>All other types are illegal bean types.</p>
    *
    * @param t the {@link TypeMirror} in question; must not be {@code null}
    *
@@ -195,8 +210,6 @@ public final class BeanTypeList extends ReferenceTypeList {
 
     // "A bean type may be a primitive type. Primitive types are considered to be identical to their corresponding
     // wrapper types in java.lang."
-    //
-    // When used as a type filter in this class, you'll want to box first.
     case BOOLEAN:
     case BYTE:
     case CHAR:
@@ -212,7 +225,7 @@ public final class BeanTypeList extends ReferenceTypeList {
     //
     // Some ink has been spilled on what it means to "contain" a "wildcard type parameter [type argument]"
     // (https://issues.redhat.com/browse/CDI-502). Because it turns out that "actual type" apparently means, among other
-    // things, a non-wildcard type, it follows that *no* type argument appearing anywhere in a bean type is
+    // things, a non-wildcard type, it follows that *no* wildcard type argument appearing *anywhere* in a bean type is
     // permitted. Note that the definition of "actual type" does not appear in the CDI specification, but only in a
     // closed JIRA issue
     // (https://issues.redhat.com/browse/CDI-502?focusedId=13036118&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-13036118).

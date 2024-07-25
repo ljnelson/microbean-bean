@@ -17,12 +17,9 @@ import java.lang.constant.Constable;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import javax.lang.model.type.TypeMirror;
 
 import org.microbean.constant.Constables;
 
@@ -34,7 +31,6 @@ import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 import static java.lang.constant.ConstantDescs.CD_boolean;
 import static java.lang.constant.ConstantDescs.CD_int;
 import static java.lang.constant.ConstantDescs.CD_List;
-import static java.lang.constant.ConstantDescs.CD_Object;
 import static java.lang.constant.ConstantDescs.FALSE;
 import static java.lang.constant.ConstantDescs.TRUE;
 
@@ -49,18 +45,6 @@ public final record Id(BeanTypeList types,
                        boolean alternate,
                        int rank)
   implements Constable, Ranked, ScopeMember {
-
-  public Id(final TypeMirror type,
-            final List<NamedAttributeMap<?>> attributes,
-            final NamedAttributeMap<?> governingScopeId) {
-    this(new BeanTypeList(type), attributes, governingScopeId, false, Ranked.DEFAULT_RANK);
-  }
-
-  public Id(final Collection<? extends TypeMirror> types,
-            final List<NamedAttributeMap<?>> attributes,
-            final NamedAttributeMap<?> governingScopeId) {
-    this(new BeanTypeList(types), attributes, governingScopeId, false, Ranked.DEFAULT_RANK);
-  }
 
   public Id(final BeanTypeList types,
             final List<NamedAttributeMap<?>> attributes,

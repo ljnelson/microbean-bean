@@ -25,7 +25,7 @@ final class TestJlm {
 
   @Test
   final void testJlm() {
-    Lang.type(Object.class);
+    Lang.typeAndElementSource().type(Object.class);
   }
 
 }

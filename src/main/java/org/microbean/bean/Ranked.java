@@ -25,7 +25,7 @@ public interface Ranked {
   public default boolean alternate() {
     return false;
   }
-  
+
   public default boolean outranks(final Ranked other) {
     return other == null || this.rank() > other.rank();
   }

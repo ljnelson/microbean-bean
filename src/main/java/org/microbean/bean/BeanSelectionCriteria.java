@@ -25,29 +25,24 @@ import java.util.Optional;
 
 import java.util.function.Predicate;
 
-import javax.lang.model.type.ArrayType;
-import javax.lang.model.type.PrimitiveType;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import org.microbean.constant.Constables;
 
-import org.microbean.lang.Equality;
-import org.microbean.lang.Lang;
-import org.microbean.lang.Lang.SameTypeEquality;
+import org.microbean.lang.SameTypeEquality;
+import org.microbean.lang.TypeAndElementSource;
 
 import org.microbean.lang.type.DelegatingTypeMirror;
 
 import org.microbean.qualifier.NamedAttributeMap;
 
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
-import static java.lang.constant.ConstantDescs.CD_boolean;
 import static java.lang.constant.ConstantDescs.CD_Collection;
 import static java.lang.constant.ConstantDescs.FALSE;
 import static java.lang.constant.ConstantDescs.TRUE;
 import static java.lang.constant.DirectMethodHandleDesc.Kind.STATIC;
 
-import static org.microbean.bean.ConstantDescs.CD_Assignability;
+import static org.microbean.bean.ConstantDescs.CD_TypeMatcher;
 import static org.microbean.bean.ConstantDescs.CD_BeanSelectionCriteria;
 import static org.microbean.bean.InterceptorBindings.anyInterceptorBinding;
 import static org.microbean.bean.Qualifiers.anyQualifier;
@@ -56,19 +51,10 @@ import static org.microbean.bean.Qualifiers.defaultQualifiers;
 
 import static org.microbean.lang.ConstantDescs.CD_TypeMirror;
 
-public final record BeanSelectionCriteria(Assignability assignability, // not included in equality/hashcode
+public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not included in equality/hashcode
                                           TypeMirror type,
-                                          List<NamedAttributeMap<?>> attributes,
-                                          boolean box)
+                                          List<NamedAttributeMap<?>> attributes)
   implements Constable {
-
-
-  /*
-   * Static fields.
-   */
-
-
-  private static final Equality EQUALITY_IGNORING_ANNOTATIONS = new Equality(false);
 
 
   /*
@@ -76,21 +62,13 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
    */
 
 
-  public BeanSelectionCriteria(final Assignability assignability, final TypeMirror type) {
-    this(assignability, type, defaultQualifiers());
-  }
-
-  public BeanSelectionCriteria(final Assignability assignability,
-                               final TypeMirror type,
-                               final List<NamedAttributeMap<?>> attributes) {
-    this(assignability, type, attributes, true);
+  public BeanSelectionCriteria(final TypeMatcher typeMatcher, final TypeMirror type) {
+    this(typeMatcher, type, defaultQualifiers());
   }
 
   public BeanSelectionCriteria {
-    if (assignability == null) {
-      assignability = new Assignability();
-    }
-    type = DelegatingTypeMirror.of(validateType(type, box), assignability.typeAndElementSource(), SameTypeEquality.INSTANCE);
+    final TypeAndElementSource tes = typeMatcher.typeAndElementSource();
+    type = validateType(DelegatingTypeMirror.of(type, tes, new SameTypeEquality(tes)));
     attributes = List.copyOf(attributes);
   }
 
@@ -118,6 +96,14 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
 
   public final boolean selects(final BeanSelectionCriteria beanSelectionCriteria) {
     return this.selects(List.of(beanSelectionCriteria.type()), beanSelectionCriteria.attributes());
+  }
+
+  public final boolean selects(final BeanTypeList beanTypeList) {
+    return this.selects(beanTypeList.types(), List.of());
+  }
+
+  public final boolean selects(final BeanTypeList beanTypeList, final Collection<? extends NamedAttributeMap<?>> attributes) {
+    return this.selects(beanTypeList.types(), attributes);
   }
 
   public final boolean selects(final TypeMirror type) {
@@ -168,27 +154,32 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
   }
 
   final boolean selectsTypeFrom(final Collection<? extends TypeMirror> types) {
-    return this.assignability.oneMatches(this.type(), types);
+    final TypeMatcher typeMatcher = this.typeMatcher();
+    final TypeMirror receiver = this.type();
+    for (final TypeMirror payload : types) {
+      if (typeMatcher.matches(receiver, payload)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override // Constable
   public final Optional<DynamicConstantDesc<BeanSelectionCriteria>> describeConstable() {
-    return this.assignability().describeConstable()
-      .flatMap(assignabilityDesc -> Lang.describeConstable(this.type())
+    return this.typeMatcher().describeConstable()
+      .flatMap(typeMatcherDesc -> ((DelegatingTypeMirror)this.type()).describeConstable()
                .flatMap(typeDesc -> Constables.describeConstable(this.attributes())
                         .map(attributesDesc -> DynamicConstantDesc.of(BSM_INVOKE,
                                                                       MethodHandleDesc.ofMethod(STATIC,
                                                                                                 CD_BeanSelectionCriteria,
                                                                                                 "of",
                                                                                                 MethodTypeDesc.of(CD_BeanSelectionCriteria,
-                                                                                                                  CD_Assignability,
+                                                                                                                  CD_TypeMatcher,
                                                                                                                   CD_TypeMirror,
-                                                                                                                  CD_Collection,
-                                                                                                                  CD_boolean)),
-                                                                      assignabilityDesc,
+                                                                                                                  CD_Collection)),
+                                                                      typeMatcherDesc,
                                                                       typeDesc,
-                                                                      attributesDesc,
-                                                                      this.box ? TRUE : FALSE))));
+                                                                      attributesDesc))));
   }
 
   @Override // Object
@@ -196,7 +187,6 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
     int hashCode = 17;
     hashCode = 31 * hashCode + this.type().hashCode();
     hashCode = 31 * hashCode + this.attributes().hashCode();
-    hashCode = 31 * hashCode + (this.box() ? 1 : 0);
     return hashCode;
   }
 
@@ -208,8 +198,7 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
       final BeanSelectionCriteria her = (BeanSelectionCriteria)other;
       return
         Objects.equals(this.type(), her.type()) &&
-        Objects.equals(this.attributes(), her.attributes()) &&
-        Objects.equals(this.box(), her.box());
+        Objects.equals(this.attributes(), her.attributes());
     } else {
       return false;
     }
@@ -220,8 +209,7 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
     return
       this.getClass().getSimpleName() + "[" +
       "type=" + this.type() + ", " +
-      "attributes=" + this.attributes() + ", " +
-      "box=" + this.box() +
+      "attributes=" + this.attributes() +
       "]";
   }
 
@@ -231,26 +219,12 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
    */
 
 
-  private static final TypeMirror validateType(final TypeMirror type, final boolean box) {
-    final TypeKind k = type.getKind();
-    if (box && k.isPrimitive()) {
-      return Lang.boxedClass((PrimitiveType)type).asType();
-    }
-    return switch (k) {
+  private static final TypeMirror validateType(final DelegatingTypeMirror type) {
+    return switch (type.getKind()) {
     case ARRAY, BOOLEAN, BYTE, CHAR, DECLARED, DOUBLE, FLOAT, INT, LONG, SHORT -> type;
     case ERROR, EXECUTABLE, INTERSECTION, MODULE, NONE, NULL, OTHER, PACKAGE, TYPEVAR, UNION, VOID, WILDCARD ->
       throw new IllegalArgumentException("type: " + type);
     };
-  }
-
-  // Returns the component type of t if is an array type. Returns t in all other cases.
-  private static final TypeMirror componentType(final TypeMirror t) {
-    return t.getKind() == TypeKind.ARRAY ? ((ArrayType)t).getComponentType() : t;
-  }
-
-  // Returns the element type of t if t is an array type. Returns t in all other cases.
-  private static final TypeMirror elementType(final TypeMirror t) {
-    return t.getKind() == TypeKind.ARRAY ? elementType(componentType(t)) : t;
   }
 
   private static final boolean containsAll(final Predicate<? super Object> p, final Iterable<?> i) {
@@ -263,11 +237,10 @@ public final record BeanSelectionCriteria(Assignability assignability, // not in
   }
 
   // Called by describeConstable().
-  public static final BeanSelectionCriteria of(final Assignability a,
+  public static final BeanSelectionCriteria of(final TypeMatcher tm,
                                                final TypeMirror type,
-                                               final Collection<? extends NamedAttributeMap<?>> attributes,
-                                               final boolean box) {
-    return new BeanSelectionCriteria(a, type, List.copyOf(attributes), box);
+                                               final Collection<? extends NamedAttributeMap<?>> attributes) {
+    return new BeanSelectionCriteria(tm, type, List.copyOf(attributes));
   }
 
 }
