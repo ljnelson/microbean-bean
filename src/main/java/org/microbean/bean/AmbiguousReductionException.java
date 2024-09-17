@@ -16,49 +16,36 @@ package org.microbean.bean;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * A {@link ReductionException} indicating that many contextual instances could not be reduced to one.
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ */
 public class AmbiguousReductionException extends ReductionException {
 
   private static final long serialVersionUID = 1L;
 
   private final transient Collection<?> alternates;
 
-  public AmbiguousReductionException() {
-    this(null, null, null, null);
-  }
 
-  public AmbiguousReductionException(final Collection<?> alternates,
-                                     final String message) {
-    this(null, alternates, message, null);
-  }
+  /*
+   * Constructors.
+   */
 
+
+  /**
+   * Creates a new {@link AmbiguousReductionException}.
+   *
+   * @param criteria the criteria by which a reduction was supposed to be effected; may be {@code null}
+   *
+   * @param alternates the contextual instances that could not be reduced; may be {@code null}
+   *
+   * @param message a detail message describing the exception; may be {@code null}
+   */
   public AmbiguousReductionException(final Object criteria,
                                      final Collection<?> alternates,
                                      final String message) {
-    this(criteria, alternates, message, null);
-  }
-
-  public AmbiguousReductionException(final Collection<?> alternates,
-                                     final Throwable cause) {
-    this(null, alternates, null, cause);
-  }
-
-  public AmbiguousReductionException(final Object criteria,
-                                     final Collection<?> alternates,
-                                     final Throwable cause) {
-    this(criteria, alternates, null, cause);
-  }
-
-  public AmbiguousReductionException(final Collection<?> alternates,
-                                     final String message,
-                                     final Throwable cause) {
-    this(null, alternates, message, cause);
-  }
-
-  public AmbiguousReductionException(final Object criteria,
-                                     final Collection<?> alternates,
-                                     final String message,
-                                     final Throwable cause) {
-    super(criteria, message, cause);
+    super(criteria, message, null);
     if (alternates == null || alternates.isEmpty()) {
       this.alternates = List.of();
     } else {
@@ -66,6 +53,13 @@ public class AmbiguousReductionException extends ReductionException {
     }
   }
 
+  /**
+   * Returns the contextual instances that could not be reduced.
+   *
+   * <p>This method never returns {@code null}.</p>
+   *
+   * @return a non-{@code null}, immutable {@link Collection} of contextual instances
+   */
   public final Collection<?> alternates() {
     return this.alternates;
   }

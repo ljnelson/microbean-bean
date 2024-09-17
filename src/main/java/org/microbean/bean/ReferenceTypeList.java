@@ -51,6 +51,7 @@ import static java.lang.constant.ConstantDescs.CD_List;
 import static org.microbean.lang.ConstantDescs.CD_Equality;
 import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
 
+@Deprecated(forRemoval = true)
 class ReferenceTypeList implements Constable {
 
   final Equality equality;
@@ -67,42 +68,34 @@ class ReferenceTypeList implements Constable {
 
   private final int hashCode;
 
-  public ReferenceTypeList(final Collection<? extends TypeMirror> types,
-                           final TypeAndElementSource typeAndElementSource) {
-    this(types, null, typeAndElementSource, null);
+  ReferenceTypeList(final Collection<? extends TypeMirror> types,
+                    final TypeAndElementSource tes) {
+    this(types, ReferenceTypeList::validateType, tes, null);
   }
 
-  public ReferenceTypeList(final Collection<? extends TypeMirror> types,
-                           final TypeAndElementSource typeAndElementSource,
-                           final Equality equality) {
-    this(types, null, typeAndElementSource, equality);
+  ReferenceTypeList(final Collection<? extends TypeMirror> types,
+                    final TypeAndElementSource tes,
+                    final Equality equality) {
+    this(types, ReferenceTypeList::validateType, tes, equality);
   }
 
-  public ReferenceTypeList(final Collection<? extends TypeMirror> types,
-                           final Predicate<? super TypeMirror> typeFilter, // the type supplied will be a DeclaredType (a DelegatingTypeMirror) and will be ARRAY, DECLARED or TYPEVAR
-                           final TypeAndElementSource typeAndElementSource) {
-    this(types, typeFilter, typeAndElementSource, null);
-  }
-
-  public ReferenceTypeList(final Collection<? extends TypeMirror> types,
-                           Predicate<? super TypeMirror> typeFilter, // the type supplied will be a DeclaredType (a DelegatingTypeMirror) and will be ARRAY, DECLARED or TYPEVAR
-                           final TypeAndElementSource typeAndElementSource,
-                           final Equality equality) {
-    super();
-    this.tes = Objects.requireNonNull(typeAndElementSource, "typeAndElementSource");
-    this.equality = equality == null ? new SameTypeEquality(typeAndElementSource) : equality;
+  ReferenceTypeList(final Collection<? extends TypeMirror> types,
+                    final Predicate<? super DelegatingTypeMirror> typeValidator,
+                    final TypeAndElementSource tes,
+                    final Equality equality) {
+    super();    
+    this.tes = Objects.requireNonNull(tes, "tes");
+    this.equality = equality == null ? new SameTypeEquality(tes) : equality;
     if (types.isEmpty()) {
       this.types = List.of();
       this.classesIndex = -1;
       this.arraysIndex = -1;
       this.interfacesIndex = -1;
     } else {
-      typeFilter =
-        typeFilter == null ? ReferenceTypeList::validateType : ((Predicate<TypeMirror>)ReferenceTypeList::validateType).and(typeFilter);
       final ArrayList<DelegatingTypeMirror> newTypes = new ArrayList<>(types.size());
       for (final TypeMirror t : types) {
-        final DelegatingTypeMirror dt = DelegatingTypeMirror.of(t, typeAndElementSource, this.equality);
-        if (!this.seen(newTypes, dt) && typeFilter.test(dt)) {
+        final DelegatingTypeMirror dt = DelegatingTypeMirror.of(t, tes, this.equality);
+        if (!this.seen(newTypes, dt) && typeValidator.test(dt)) {
           newTypes.add(dt);
         }
       }
@@ -119,7 +112,7 @@ class ReferenceTypeList implements Constable {
                          //  arrays precede interfaces
                          TypeKindComparator.INSTANCE
                          // Sort next by specialization depth
-                         .thenComparing(new SpecializationDepthTypeMirrorComparator(typeAndElementSource, this.equality))
+                         .thenComparing(new SpecializationDepthTypeMirrorComparator(tes, this.equality))
                          // Sort last by name
                          .thenComparing(NameTypeMirrorComparator.INSTANCE));
         int classesIndex = -1;
@@ -127,7 +120,7 @@ class ReferenceTypeList implements Constable {
         int interfacesIndex = -1;
         LOOP:
         for (int i = 0; i < newTypes.size(); i++) {
-          final TypeMirror newType = newTypes.get(i);
+          final DelegatingTypeMirror newType = newTypes.get(i);
           switch (newType.getKind()) {
           case ARRAY:
             if (arraysIndex < 0) {
@@ -135,7 +128,7 @@ class ReferenceTypeList implements Constable {
             }
             break;
           case DECLARED:
-            if (((DeclaredType)newType).asElement().getKind().isInterface()) {
+            if (newType.asElement().getKind().isInterface()) {
               interfacesIndex = i;
               break LOOP;
             } else if (classesIndex < 0) {
@@ -197,11 +190,11 @@ class ReferenceTypeList implements Constable {
                                                                tesDesc))));
   }
 
-  public final List<? extends TypeMirror> types() {
+  public final List<? extends DelegatingTypeMirror> types() {
     return this.types;
   }
 
-  public final List<? extends TypeMirror> classes() {
+  public final List<? extends DelegatingTypeMirror> classes() {
     if (this.classesIndex < 0) {
       return List.of();
     } else if (this.arraysIndex < 0) {
@@ -213,7 +206,7 @@ class ReferenceTypeList implements Constable {
     return this.types.subList(this.classesIndex, this.arraysIndex);
   }
 
-  public final List<? extends TypeMirror> arrays() {
+  public final List<? extends DelegatingTypeMirror> arrays() {
     if (this.arraysIndex < 0) {
       return List.of();
     } else if (this.arraysIndex == 0) {
@@ -222,7 +215,7 @@ class ReferenceTypeList implements Constable {
     return this.types.subList(this.arraysIndex, this.interfacesIndex < 0 ? this.types.size() : this.interfacesIndex);
   }
 
-  public final List<? extends TypeMirror> interfaces() {
+  public final List<? extends DelegatingTypeMirror> interfaces() {
     if (this.interfacesIndex < 0) {
       return List.of();
     } else if (this.interfacesIndex == 0) {
@@ -231,7 +224,7 @@ class ReferenceTypeList implements Constable {
     return this.types.subList(this.interfacesIndex, this.types.size());
   }
 
-  public final List<? extends TypeMirror> typeVariables() {
+  public final List<? extends DelegatingTypeMirror> typeVariables() {
     return this.classesIndex <= 0 ? List.of() : this.types.subList(0, this.classesIndex);
   }
 
@@ -256,7 +249,7 @@ class ReferenceTypeList implements Constable {
     return String.valueOf(this.types());
   }
 
-  private final boolean seen(final Iterable<? extends TypeMirror> seen, final TypeMirror t) {
+  private final boolean seen(final Iterable<? extends DelegatingTypeMirror> seen, final DelegatingTypeMirror t) {
     for (final TypeMirror s : seen) {
       if (s == t || this.equality.equals(s, t)) {
         return true;
@@ -272,27 +265,15 @@ class ReferenceTypeList implements Constable {
 
 
   public static ReferenceTypeList closure(final TypeMirror t,
-                                          final TypeAndElementSource typeAndElementSource) {
-    return closure(t, null, new Visitors(typeAndElementSource));
-  }
-
-  public static ReferenceTypeList closure(final TypeMirror t,
-                                          final Predicate<? super TypeMirror> typeFilter,
-                                          final TypeAndElementSource typeAndElementSource) {
-    return closure(t, typeFilter, new Visitors(typeAndElementSource));
+                                          final TypeAndElementSource tes) {
+    return closure(t, new Visitors(tes));
   }
 
   public static ReferenceTypeList closure(final TypeMirror t,
                                           final Visitors visitors) {
-    return closure(t, null, visitors);
-  }
-
-  public static ReferenceTypeList closure(final TypeMirror t,
-                                          final Predicate<? super TypeMirror> typeFilter,
-                                          final Visitors visitors) {
-    return new ReferenceTypeList(visitors.typeClosureVisitor().visit(t).toList(),
-                                 typeFilter,
-                                 visitors.typeAndElementSource());
+    final TypeAndElementSource tes = visitors.typeAndElementSource();
+    return new ReferenceTypeList(visitors.typeClosureVisitor().visit(DelegatingTypeMirror.of(t, tes)).toList(),
+                                 tes);
   }
 
   // Every so often and only under parallel testing:
@@ -302,7 +283,7 @@ class ReferenceTypeList implements Constable {
   //  at org.microbean.bean@0.0.1-SNAPSHOT/org.microbean.bean.ReferenceTypeList.<init>(ReferenceTypeList.java:116)
   //  at org.microbean.bean@0.0.1-SNAPSHOT/org.microbean.bean.ReferenceTypeList.<init>(ReferenceTypeList.java:83)
   //  at org.microbean.bean@0.0.1-SNAPSHOT/org.microbean.bean.TestReferenceTypeList.testSorting(TestReferenceTypeList.java:71)
-  static final boolean validateType(final TypeMirror t) {
+  static final boolean validateType(final DelegatingTypeMirror t) {
     return switch (t.getKind()) {
     case ARRAY, DECLARED, TYPEVAR -> true;
     default -> throw new IllegalArgumentException("t is not a suitable reference type: " + t);

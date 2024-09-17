@@ -53,7 +53,31 @@ import static java.util.stream.Collector.Characteristics.UNORDERED;
 
 import static org.microbean.bean.ConstantDescs.CD_Beans;
 
+/**
+ * A {@link Selectable} implementation that {@linkplain #select(BeanSelectionCriteria) selects} {@link Bean}s using
+ * {@link BeanSelectionCriteria} instances.
+ *
+ * <p>Elements overall in any {@link List} returned by methods in this class will be sorted by their {@linkplain
+ * Ranked#alternate() alternate status} and then by their {@linkplain Ranked#rank() rank}.</p>
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ *
+ * @see Selectable
+ *
+ * @see #select(BeanSelectionCriteria)
+ *
+ * @see ReducibleBeans
+ *
+ * @deprecated See {@link ReducibleBeans} instead.
+ */
+@Deprecated // See ReducibleBeans
 public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Constable {
+
+
+  /*
+   * Static fields.
+   */
+
 
   private static final Logger LOGGER = System.getLogger(Beans.class.getName());
 
@@ -66,16 +90,48 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
     .reversed()
     .thenComparing(byRankComparator);
 
+
+  /*
+   * Instance fields.
+   */
+
+
   private final List<Bean<?>> beans;
 
   private final ConcurrentMap<BeanSelectionCriteria, List<Bean<?>>> selections;
 
+
+  /*
+   * Constructors.
+   */
+
+
+  /**
+   * Creates a new {@link Beans}.
+   *
+   * @param beans a {@link Collection} of {@link Bean}s from which sublists will be {@linkplain
+   * #select(BeanSelectionCriteria) selected}; must not be {@code null}
+   *
+   * @exception NullPointerException if {@code beans} is {@code null}
+   */
   public Beans(final Collection<? extends Bean<?>> beans) {
     this(Map.of(), beans);
   }
 
+  /**
+   * Creates a new {@link Beans}.
+   *
+   * <p>Duplicate elements in the union of the supplied beans and the selections will be ignored.</p>
+   *
+   * @param selections a precomputed cache of selections; must not be {@code null}
+   *
+   * @param beans a {@link Collection} of {@link Bean}s from which sublists will be {@linkplain
+   * #select(BeanSelectionCriteria) selected}; must not be {@code null}
+   *
+   * @exception NullPointerException if either {@code selections} or {@code beans} is {@code null}
+   */
   public Beans(final Map<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> selections,
-                      final Collection<? extends Bean<?>> beans) {
+               final Collection<? extends Bean<?>> beans) {
     super();
     this.selections = new ConcurrentHashMap<>();
     final ArrayList<Bean<?>> newBeans = new ArrayList<>(31); // 31 == arbitrary
@@ -111,6 +167,12 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
     this.beans = Collections.unmodifiableList(newBeans);
   }
 
+
+  /*
+   * Instance methods.
+   */
+
+
   @Override // Constable
   public Optional<DynamicConstantDesc<Beans>> describeConstable() {
     return Constables.describeConstable(this.selections)
@@ -123,7 +185,7 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
                                                         beansDesc)));
   }
 
-  @Override // Beans (Selectable<BeanSelectionCriteria, Bean<?>>)
+  @Override // Selectable<BeanSelectionCriteria, Bean<?>>
   public final List<Bean<?>> select(final BeanSelectionCriteria beanSelectionCriteria) {
     return
       beanSelectionCriteria == null ?
@@ -132,21 +194,45 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
   }
 
   private final List<Bean<?>> computeSelection(final BeanSelectionCriteria bsc) {
-    // No need to sort via ranks because the stream will be in encounter order and this.beans has already been properly sorted
+    // No need to sort via ranks because the stream will be in encounter order and this.beans has already been properly
+    // sorted
     return this.stream().filter(bsc::selects).toList();
   }
 
+  /**
+   * Returns a {@link Stream} of this {@link Beans}' elements.
+   *
+   * <p>This method is idempotent and produces a determinate value.</p>
+   *
+   * @return a {@link Stream} of this {@link Beans}' elements; never {@code null}
+   */
   public final Stream<Bean<?>> stream() {
     return this.list().stream();
   }
 
-  @Override // Beans (Filerable<BeanSelectionCriteria, Bean<?>>)
+  /**
+   * Returns an immutable {@link List} of this {@link Beans}' elements.
+   *
+   * <p>This method is idempotent and produces a determinate value.</p>
+   *
+   * @return an immutable {@link List} of this {@link Beans}' elements; never {@code null}
+   */
+  @Override // Selectable<BeanSelectionCriteria, Bean<?>>
   public final List<Bean<?>> list() {
     return this.beans;
   }
 
+  /**
+   * A reporting-oriented method that returns an immutable {@link List} of all {@link Bean}s that have been {@linkplain
+   * #select(BeanSelectionCriteria) selected} so far.
+   *
+   * <p>This method is idempotent but does not return a determinate value.</p>
+   *
+   * @return an immutable {@link List} of all {@link Bean}s that have been {@linkplain #select(BeanSelectionCriteria)
+   * selected} so far
+   */
   // Snapshot; slow
-  public final List<Bean<?>> listUsed() {
+  public final List<Bean<?>> selected() {
     final ArrayList<Bean<?>> used = new ArrayList<>(this.selections.size()); // estimated size
     final Set<Bean<?>> set = newHashSet(this.selections.size());
     this.selections.values().forEach(c -> c.forEach(b -> {
@@ -160,8 +246,17 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
     return Collections.unmodifiableList(used);
   }
 
+  /**
+   * A reporting-oriented method that returns an immutable {@link List} of all {@link Bean}s that have not been
+   * {@linkplain #select(BeanSelectionCriteria) selected} by any {@link BeanSelectionCriteria} so far.
+   *
+   * <p>This method is idempotent but does not return a determinate value.</p>
+   *
+   * @return an immutable {@link List} of all {@link Bean}s that have not been {@linkplain
+   * #select(BeanSelectionCriteria) selected} by any {@link BeanSelectionCriteria} so far; never {@code null}
+   */
   // Snapshot; slow
-  public final List<Bean<?>> listUnused() {
+  public final List<Bean<?>> unselected() {
     final Set<Bean<?>> used = newHashSet(this.selections.size());
     this.selections.values().forEach(c -> c.forEach(b -> used.add(b)));
     final List<Bean<?>> unused = this.stream().filter(not(used::contains)).toList();
@@ -169,11 +264,32 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
     return unused;
   }
 
+  /**
+   * A reporting-oriented method that returns an immutable {@link Set} of all known {@link BeanSelectionCriteria}
+   * instances that have been used so far to {@linkplain #select(BeanSelectionCriteria) select} beans.
+   *
+   * <p>Two invocations of this method may return differently-ordered {@link Set}s.</p>
+   *
+   * <p>This method is idempotent but does not return a determinate value.</p>
+   *
+   * @return an immutable {@link Set} of all known {@link BeanSelectionCriteria} instances that have been used so far to
+   * {@linkplain #select(BeanSelectionCriteria) select} beans; never {@code null}
+   */
   // Snapshot
-  public final Set<BeanSelectionCriteria> selectCriteria() {
+  public final Set<BeanSelectionCriteria> criteria() {
     return Collections.unmodifiableSet(this.selections.keySet());
   }
 
+  /**
+   * A reporting-oriented method that returns an immutable {@link Set} of all known {@link BeanSelection}s that have
+   * been made so far.
+   *
+   * <p>Two invocations of this method may return differently-ordered {@link Set}s.</p>
+   *
+   * <p>This method is idempotent but does not return a determinate value.</p>
+   *
+   * @return an immutable {@link Set} of all known {@link BeanSelection}s that have been made so far; never {@code null}
+   */
   // Snapshot
   public final Set<BeanSelection> selections() {
     return this.selections.entrySet().stream()
@@ -188,6 +304,13 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Consta
                                                                         UNORDERED));
   }
 
+  /**
+   * Returns a {@link String} representation of this {@link Beans}.
+   *
+   * <p>This method is idempotent and returns a determinate value.</p>
+   *
+   * @return a {@link String} representation of this {@link Beans}; never {@code null}
+   */
   @Override
   public String toString() {
     final StringJoiner sj = new StringJoiner(lineSeparator());

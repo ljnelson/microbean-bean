@@ -20,9 +20,46 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.function.BiFunction;
 
-// Experimental.
+/**
+ * A {@linkplain FunctionalInterface functional interface} whose implementations can <em>reduce</em> a supplied {@link
+ * List} of elements to a single element according to some <em>criteria</em>.
+ *
+ * <p>The reduction may be a simple filtering operation, or may be a summing or aggregating operation, or anything
+ * else.</p>
+ *
+ * <p>This interface is related to, but should not be confused with, the {@link Reducible} interface.</p>
+ *
+ * <p>{@link Reducer} implementations are often used to help build {@link Reducible} implementations. See, for example,
+ * {@link Reducible#ofCaching(Selectable, Reducer, BiFunction)}.</p>
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ *
+ * @see #reduce(List, Object, BiFunction)
+ *
+ * @see Reducible
+ */
+@FunctionalInterface
 public interface Reducer<C, T> {
 
+  /**
+   * Performs some kind of reductive or filtering operation on the supplied {@link List}, according to the supplied
+   * criteria, and returns the single result, or, if reduction fails, invokes the supplied {@link BiFunction} with a
+   * sublist representing a partial reduction (or an empty list representing a reduction that simply could not be
+   * performed), along with the supplied criteria, and returns its result.
+   *
+   * <p>Implementations of this method must return determinate values.</p>
+   *
+   * @param elements the {@link List} to reduce; must not be {@code null}
+   *
+   * @param c the criteria effectively describing the reduction; may be {@code null} to indicate no criteria
+   *
+   * @param failureHandler a {@link BiFunction} receiving a partial reduction and the criteria that returns a substitute
+   * reduction (or, more commonly, throws an exception); must not be {@code null}
+   *
+   * @return a single element drawn or computed from the supplied {@code elements} which may be {@code null}
+   *
+   * @see #fail(List, Object)
+   */
   // List, not Stream, for equality semantics and caching purposes.
   // List, not Set, because it's much faster and reduction can take care of duplicates if needed
   // C, not Predicate, because it may not be necessary to actually filter the list
@@ -31,6 +68,12 @@ public interface Reducer<C, T> {
   public T reduce(final List<? extends T> elements,
                   final C c,
                   final BiFunction<? super List<? extends T>, ? super C, ? extends T> failureHandler);
+
+
+  /*
+   * Default methods.
+   */
+
 
   public default T reduce(final Selectable<? super C, ? extends T> f,
                           final C c,
@@ -46,16 +89,22 @@ public interface Reducer<C, T> {
     return this.reduce(elements, c, Reducer::fail);
   }
 
+  // Experimental. Probably overkill. Unbounded.
+  public default Reducer<C, T> cached() {
+    record Key<C, T>(List<T> l, C c) {};
+    final Map<Key<C, T>, T> cache = new ConcurrentHashMap<>();
+    return (l, c, fh) -> cache.computeIfAbsent(new Key<C, T>(List.copyOf(l), c), k -> this.reduce(k.l(), k.c(), fh));
+  }
+
+
+  /*
+   * Static methods.
+   */
+
+
   // A Reducer that simply calls its supplied failure handler.
   public static <C, T> Reducer<C, T> ofFailing() {
     return (l, c, fh) -> fh.apply(l, c);
-  }
-
-  // Probably overkill.
-  public static <C, T> Reducer<C, T> ofCaching(final Reducer<C, T> r) {
-    record Key<C, T>(List<T> l, C c) {};
-    final Map<Key<C, T>, T> cache = new ConcurrentHashMap<>();
-    return (l, c, fh) -> cache.computeIfAbsent(new Key<C, T>(List.copyOf(l), c), k -> r.reduce(k.l(), k.c(), fh));
   }
 
   // Default failure handler; call by method reference

@@ -51,6 +51,24 @@ import static org.microbean.bean.Qualifiers.defaultQualifiers;
 
 import static org.microbean.lang.ConstantDescs.CD_TypeMirror;
 
+/**
+ * An object that represents criteria used to <em>select</em> {@link Bean}s according to rules used to <em>match</em>
+ * types and qualifiers.
+ *
+ * @param typeMatcher a non-{@code null} {@link TypeMatcher} used to determine whether two types {@linkplain
+ * TypeMatcher#matches(TypeMirror, TypeMirror) match}
+ *
+ * @param type a non-{@code null} {@link TypeMirror} representing the kind of {@link Bean} that should be selected
+ *
+ * @param attributes a (possibly {@code null}) {@link List} of {@link NamedAttributeMap} instances representing
+ * qualifiers, interceptor bindings, or both
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ *
+ * @see #selects(Collection, Collection)
+ *
+ * @see TypeMatcher
+ */
 public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not included in equality/hashcode
                                           TypeMirror type,
                                           List<NamedAttributeMap<?>> attributes)
@@ -62,14 +80,38 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
    */
 
 
+  /**
+   * Creates a new {@link BeanSelectionCriteria}.
+   *
+   * @param typeMatcher a non-{@code null} {@link TypeMatcher} used to determine whether two types {@linkplain
+   * TypeMatcher#matches(TypeMirror, TypeMirror) match}
+   *
+   * @param type a non-{@code null} {@link TypeMirror} representing the kind of {@link Bean} that should be selected
+   *
+   * @exception NullPointerException if either {@code typeMatcher} or {@code type} is {@code null}
+   */
   public BeanSelectionCriteria(final TypeMatcher typeMatcher, final TypeMirror type) {
-    this(typeMatcher, type, defaultQualifiers());
+    this(typeMatcher, type, null);
   }
 
+  /**
+   * Creates a new {@link BeanSelectionCriteria}.
+   *
+   * @param typeMatcher a non-{@code null} {@link TypeMatcher} used to determine whether two types {@linkplain
+   * TypeMatcher#matches(TypeMirror, TypeMirror) match}
+   *
+   * @param type a non-{@code null} {@link TypeMirror} representing the kind of {@link Bean} that should be selected
+   *
+   * @param attributes a (possibly {@code null}) {@link List} of {@link NamedAttributeMap} instances representing
+   * qualifiers, interceptor bindings, or both; if {@code null} then the return value from an invocation of the {@link
+   * Qualifiers#defaultQualifiers()} method will be used instead
+   *
+   * @exception NullPointerException if either {@code typeMatcher} or {@code type} is {@code null}
+   */
   public BeanSelectionCriteria {
     final TypeAndElementSource tes = typeMatcher.typeAndElementSource();
     type = validateType(DelegatingTypeMirror.of(type, tes, new SameTypeEquality(tes)));
-    attributes = List.copyOf(attributes);
+    attributes = attributes == null ? defaultQualifiers() : List.copyOf(attributes);
   }
 
 
@@ -78,36 +120,71 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
    */
 
 
+  /**
+   * Returns an immutable sublist of this {@link BeanSelectionCriteria}'s {@linkplain #attributes() attributes} that are
+   * interceptor bindings.
+   *
+   * <p>This method never returns {@code null}.</p>
+   *
+   * <p>This method is idempotent and returns a determinate value.</p>
+   *
+   * @return an immutable sublist of this {@link BeanSelectionCriteria}'s {@linkplain #attributes() attributes} that are
+   * interceptor bindings; never {@code null}
+   *
+   * @see InterceptorBindings#interceptorBindings(Collection)
+   */
   public final List<NamedAttributeMap<?>> interceptorBindings() {
     return InterceptorBindings.interceptorBindings(this.attributes());
   }
 
+  /**
+   * Returns an immutable sublist of this {@link BeanSelectionCriteria}'s {@linkplain #attributes() attributes} that are
+   * qualifiers.
+   *
+   * <p>This method never returns {@code null}.</p>
+   *
+   * <p>This method is idempotent and returns a determinate value.</p>
+   *
+   * @return an immutable sublist of this {@link BeanSelectionCriteria}'s {@linkplain #attributes() attributes} that are
+   * qualifiers; never {@code null}
+   *
+   * @see Qualifiers#qualifiers(Collection)
+   */
   public final List<NamedAttributeMap<?>> qualifiers() {
     return Qualifiers.qualifiers(this.attributes());
   }
 
+  /**
+   * Returns {@code true} if an invocation of the {@link #selects(Collection, Collection)} method supplied with the
+   * supplied {@link Id}'s {@linkplain BeanTypeList#types() types} and {@linkplain Id#attributes() attributes} returns
+   * {@code true}.
+   *
+   * @param id an {@link Id}; must not be {@code null}
+   *
+   * @return {@code true} if an invocation of the {@link #selects(Collection, Collection)} method supplied with the
+   * supplied {@link Id}'s {@linkplain BeanTypeList#types() types} and {@linkplain Id#attributes() attributes} returns
+   * {@code true}; {@code false} in all other cases
+   *
+   * @exception NullPointerException if {@code id} is {@code null}
+   *
+   * @see #selects(Collection, Collection)
+   *
+   * @see Id#types()
+   *
+   * @see Id#attributes()
+   *
+   * @see BeanTypeList#types()
+   */
   public final boolean selects(final Id id) {
     return this.selects(id.types().types(), id.attributes());
   }
 
   public final boolean selects(final Bean<?> bean) {
-    return this.selects(bean.id().types().types(), bean.id().attributes());
-  }
-
-  public final boolean selects(final BeanSelectionCriteria beanSelectionCriteria) {
-    return this.selects(List.of(beanSelectionCriteria.type()), beanSelectionCriteria.attributes());
-  }
-
-  public final boolean selects(final BeanTypeList beanTypeList) {
-    return this.selects(beanTypeList.types(), List.of());
-  }
-
-  public final boolean selects(final BeanTypeList beanTypeList, final Collection<? extends NamedAttributeMap<?>> attributes) {
-    return this.selects(beanTypeList.types(), attributes);
+    return this.selects(bean.id());
   }
 
   public final boolean selects(final TypeMirror type) {
-    return this.selects(List.of(type), List.of());
+    return this.selects(List.of(type));
   }
 
   public final boolean selects(final Collection<? extends TypeMirror> types) {
@@ -118,12 +195,37 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
     return this.selects(List.of(type), attributes);
   }
 
+  /**
+   * Returns {@code true} if an invocation of {@link #selectsQualifiers(Collection)} supplied with the supplied {@code
+   * attributes} returns {@code true}, and if an invocation of {@link #selectsInterceptorBindings(Collection)} supplied
+   * with the supplied {@code attributes} also returns {@code true}, and if an invocation of {@link
+   * #selectsTypeFrom(Collection)} supplied with the supplied {@code types} returns {@code true}.
+   *
+   * @param types a {@link Collection} of {@link TypeMirror} instances; must not be {@code null}
+   *
+   * @param attributes a {@link Collection} of {@link NamedAttributeMap} instances representing qualifiers, interceptor
+   * bindings or both
+   *
+   * @return {@code true} if an invocation of {@link #selectsQualifiers(Collection)} supplied with the supplied {@code
+   * attributes} returns {@code true}, and if an invocation of {@link #selectsInterceptorBindings(Collection)} supplied
+   * with the supplied {@code attributes} also returns {@code true}, and if an invocation of {@link
+   * #selectsTypeFrom(Collection)} supplied with the supplied {@code types} returns {@code true}; {@code false} in all
+   * other cases
+   *
+   * @exception NullPointerException if either {@code types} or {@code attributes} is {@code null}
+   *
+   * @see #selectsInterceptorBindings(Collection)
+   *
+   * @see #selectsQualifiers(Collection)
+   *
+   * @see #selectsTypeFrom(Collection)
+   */
   public final boolean selects(final Collection<? extends TypeMirror> types,
                                final Collection<? extends NamedAttributeMap<?>> attributes) {
     return this.selectsQualifiers(attributes) && this.selectsInterceptorBindings(attributes) && this.selectsTypeFrom(types);
   }
 
-  private final boolean selectsInterceptorBindings(final Collection<? extends NamedAttributeMap<?>> attributes) {
+  public final boolean selectsInterceptorBindings(final Collection<? extends NamedAttributeMap<?>> attributes) {
     final List<? extends NamedAttributeMap<?>> herBindings = InterceptorBindings.interceptorBindings(attributes);
     if (herBindings.isEmpty()) {
       return this.interceptorBindings().isEmpty();
@@ -134,11 +236,29 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
     return ibs.size() == herBindings.size() && ibs.containsAll(herBindings) && herBindings.containsAll(ibs);
   }
 
-  private final boolean selectsQualifiers(final Collection<? extends NamedAttributeMap<?>> attributes) {
+  /**
+   * Returns {@code true} if and only if this {@link BeanSelectionCriteria}'s {@linkplain #qualifiers() qualifiers} are
+   * contained by the qualifiers present in the supplied {@link Collection} of attributes.
+   *
+   * <p>If the return value of an invocation of the {@link #qualifiers()} method is empty, then this method behaves as
+   * if the return value of an invocation of {@link Qualifiers#defaultQualifiers()} were returned instead.</p>
+   *
+   * <p>If the supplied {@code attributes} has no qualifiers, then the return value of {@link
+   * Qualifiers#anyAndDefaultQualifiers()} will be used instead.</p>
+   *
+   * @param attributes a {@link Collection} of {@link NamedAttributeMap} instances representing attributes; must not be {@code null}
+   *
+   * @return {@code true} if and only if this {@link BeanSelectionCriteria}'s {@linkplain #qualifiers() qualifiers} are
+   * contained by the qualifiers present in the supplied {@link Collection} of attributes; {@code false} in all other
+   * cases
+   *
+   * @exception NullPointerException if {@code attributes} is {@code null}
+   */
+  public final boolean selectsQualifiers(final Collection<? extends NamedAttributeMap<?>> attributes) {
     final Collection<? extends NamedAttributeMap<?>> myQualifiers = this.qualifiers();
     final List<? extends NamedAttributeMap<?>> herQualifiers = Qualifiers.qualifiers(attributes);
     if (myQualifiers.isEmpty()) {
-      // Pretend I had [@Default] and she had [@Default, @Any].
+      // Pretend I had [@Default] and she had at least [@Default] (e.g. [@Default, @Any])
       return herQualifiers.isEmpty() || containsAll(herQualifiers::contains, defaultQualifiers());
     } else if (herQualifiers.isEmpty()) {
       for (final NamedAttributeMap<?> myQualifier : myQualifiers) {
@@ -153,7 +273,20 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
     }
   }
 
-  final boolean selectsTypeFrom(final Collection<? extends TypeMirror> types) {
+  /**
+   * Returns {@code true} if and only if this {@link BeanSelectionCriteria}'s {@linkplain #type() type} {@linkplain
+   * TypeMatcher#matches(TypeMirror, TypeMirror) <em>matches</em>} at least one of the {@link TypeMirror} instances in
+   * the supplied {@link Collection} of {@link TypeMirror}s.
+   *
+   * @param types a {@link Collection} of {@link TypeMirror}s; must not be {@code null}
+   *
+   * @return {@code true} if and only if this {@link BeanSelectionCriteria}'s {@linkplain #type() type} {@linkplain
+   * TypeMatcher#matches(TypeMirror, TypeMirror) <em>matches</em>} at least one of the {@link TypeMirror} instances in
+   * the supplied {@link Collection} of {@link TypeMirror}s; {@code false} in all other cases
+   *
+   * @exception NullPointerException if {@code types} is {@code null}
+   */
+  public final boolean selectsTypeFrom(final Collection<? extends TypeMirror> types) {
     final TypeMatcher typeMatcher = this.typeMatcher();
     final TypeMirror receiver = this.type();
     for (final TypeMirror payload : types) {
@@ -164,6 +297,13 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
     return false;
   }
 
+  /**
+   * Returns an {@link Optional} containing a {@link DynamicConstantDesc} describing this {@link BeanSelectionCriteria},
+   * or an {@linkplain Optional#isEmpty() empty <code>Optional</code>} if it could not be described.
+   *
+   * @return an {@link Optional} containing a {@link DynamicConstantDesc} describing this {@link BeanSelectionCriteria},
+   * or an {@linkplain Optional#isEmpty() empty <code>Optional</code>} if it could not be describe; never {@code null}
+   */
   @Override // Constable
   public final Optional<DynamicConstantDesc<BeanSelectionCriteria>> describeConstable() {
     return this.typeMatcher().describeConstable()
@@ -219,7 +359,7 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
    */
 
 
-  private static final TypeMirror validateType(final DelegatingTypeMirror type) {
+  private static final <T extends DelegatingTypeMirror> T validateType(final T type) {
     return switch (type.getKind()) {
     case ARRAY, BOOLEAN, BYTE, CHAR, DECLARED, DOUBLE, FLOAT, INT, LONG, SHORT -> type;
     case ERROR, EXECUTABLE, INTERSECTION, MODULE, NONE, NULL, OTHER, PACKAGE, TYPEVAR, UNION, VOID, WILDCARD ->

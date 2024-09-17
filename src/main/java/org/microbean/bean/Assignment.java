@@ -15,21 +15,39 @@ package org.microbean.bean;
 
 import java.util.Objects;
 
-// An assignment of a value to a dependency (obviously, I hope).
+/**
+ * An assignment of a contextual reference to a {@link Dependency}, usually as found by a {@link ReferenceSelector}.
+ *
+ * @param dependency the {@link Dependency}; must not be {@code null}
+ *
+ * @param value the contextual reference; may be {@code null}
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ */
 public record Assignment(Dependency dependency, Object value) {
 
+  /**
+   * Creates a new {@link Assignment}.
+   *
+   * @param dependency the {@link Dependency}; must not be {@code null}
+   *
+   * @param value the contextual reference; may be {@code null}
+   */
   public Assignment {
     Objects.requireNonNull(dependency, "dependency");
   }
 
-  // Re-ups this assignment and returns a new one.
-  // Convenience
-  public final Assignment replace(final Request<?> r) {
-    return of(this.dependency(), r);
-  }
-
-  public static final Assignment of(final Dependency d, final Request<?> r) {
-    return new Assignment(d, r.reference(d.beanSelectionCriteria(), r));
+  /**
+   * Creates a new {@link Assignment}.
+   *
+   * @param d the {@link Dependency}; must not be {@code null}
+   *
+   * @param r a {@link Request} used to locate the contextual reference; must not be {@code null}
+   *
+   * @exception NullPointerException if {@code r} is {@code null}
+   */
+  public Assignment(final Dependency d, final Request<?> r) {
+    this(d, r.reference(d.beanSelectionCriteria(), r));
   }
 
 }

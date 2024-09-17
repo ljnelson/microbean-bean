@@ -28,6 +28,9 @@ import java.util.SequencedSet;
  */
 public interface Aggregate {
 
+  /**
+   * An immutable, empty {@link SequencedSet}.
+   */
   public static final SequencedSet<Dependency> EMPTY_DEPENDENCIES = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(0));
 
   /**
@@ -41,10 +44,20 @@ public interface Aggregate {
     return EMPTY_DEPENDENCIES;
   }
 
+  /**
+   * Assigns a contextual reference to each of this {@link Aggregate}'s {@link Dependency} instances and returns the
+   * resutling {@link List} of {@link Assignment}s.
+   *
+   * @param r a {@link Request}; must not be {@code null}
+   *
+   * @return a {@link List} of {@link Assignment} instances; never {@code null}
+   *
+   * @exception NullPointerException if {@code r} is {@code null}
+   */
   public default List<Assignment> assign(final Request<?> r) {
     final Collection<? extends Dependency> ds = this.dependencies();
     return ds == null || ds.isEmpty() ? List.of() : ds.stream()
-      .map(d -> Assignment.of(d, r))
+      .map(d -> new Assignment(d, r.reference(d.beanSelectionCriteria(), r)))
       .toList();
   }
 

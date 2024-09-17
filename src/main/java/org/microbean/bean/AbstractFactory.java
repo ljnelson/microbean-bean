@@ -19,13 +19,13 @@ import java.util.Objects;
 @Deprecated
 abstract class AbstractFactory<I> implements Factory<I> {
 
-  private static final Initializer<?> PASSTHROUGH_INITIALIZER = new AbstractInitializer<Object>();
+  private static final Initializer<?> PASSTHROUGH_INITIALIZER = (i, r) -> i;
 
-  private static final PostInitializer<?> PASSTHROUGH_POSTINITIALIZER = new AbstractPostInitializer<Object>();
+  private static final PostInitializer<?> PASSTHROUGH_POSTINITIALIZER = (i, r) -> i;
 
-  private static final InterceptionsApplicator<?> PASSTHROUGH_INTERCEPTIONSAPPLICATOR = new AbstractInterceptionsApplicator<Object>();
+  private static final InterceptionsApplicator<?> PASSTHROUGH_INTERCEPTIONSAPPLICATOR = (i, r) -> i;
 
-  private static final PreDestructor<?> PASSTHROUGH_PREDESTRUCTOR = new AbstractPreDestructor<Object>();
+  private static final PreDestructor<?> PASSTHROUGH_PREDESTRUCTOR = (i, r) -> i;
 
   private final Producer<I> producer;
 

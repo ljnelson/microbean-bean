@@ -73,8 +73,8 @@ final class TestConstableSemantics {
   @Test
   final void testReferenceTypeList() throws ReflectiveOperationException {
     final ReferenceTypeList list =
-      new ReferenceTypeList(List.of(tes.declaredType(String.class), tes.declaredType(Object.class)),
-                            null,
+      new ReferenceTypeList(List.of(tes.declaredType(String.class),
+                                    tes.declaredType(Object.class)),
                             tes,
                             new SameTypeEquality(tes));
     assertEquals(list, Constables.describeConstable(list).orElseThrow().resolveConstantDesc(privateLookupIn(ReferenceTypeList.class, lookup())));

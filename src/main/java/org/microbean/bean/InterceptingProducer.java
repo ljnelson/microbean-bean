@@ -26,7 +26,7 @@ import org.microbean.interceptor.InterceptorMethod;
 import static org.microbean.interceptor.Interceptions.ofConstruction;
 
 // Applies around-construct logic to contextual instance production.
-public final class InterceptingProducer<I> extends AbstractProducer<I> {
+public final class InterceptingProducer<I> implements Producer<I> {
 
   private final InterceptionFunction f;
 
@@ -58,7 +58,7 @@ public final class InterceptingProducer<I> extends AbstractProducer<I> {
   @SuppressWarnings("unchecked")
   public final I produce(final Request<I> r) {
     return (I)this.f.apply(this.dependencies().stream()
-                           .map(d -> Assignment.of(d, r).value())
+                           .map(d -> new Assignment(d, r).value())
                            .toArray());
   }
 

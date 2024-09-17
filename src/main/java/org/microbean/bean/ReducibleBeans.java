@@ -13,41 +13,140 @@
  */
 package org.microbean.bean;
 
+import java.lang.System.Logger;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.HashSet.newHashSet;
+
 public final class ReducibleBeans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reducible<BeanSelectionCriteria, Bean<?>> {
 
-  private final Map<BeanSelectionCriteria, Bean<?>> reductions;
 
-  private final Selectable<BeanSelectionCriteria, Bean<?>> f;
+  /*
+   * Static fields.
+   */
 
-  private final Reducer<BeanSelectionCriteria, Bean<?>> r;
 
-  public ReducibleBeans(final Selectable<BeanSelectionCriteria, Bean<?>> f,
+  private static final Logger LOGGER = System.getLogger(ReducibleBeans.class.getName());
+
+  private static final Comparator<Bean<?>> byRankComparator = Comparator
+    .<Bean<?>>comparingInt(Ranked::rank)
+    .reversed();
+
+  private static final Comparator<Bean<?>> byAlternateThenByRankComparator = Comparator
+    .<Bean<?>, Boolean>comparing(Ranked::alternate)
+    .reversed()
+    .thenComparing(byRankComparator);
+
+
+  /*
+   * Instance fields.
+   */
+
+
+  private final Selectable<BeanSelectionCriteria, Bean<?>> s;
+
+  private final Reducible<BeanSelectionCriteria, Bean<?>> r;
+
+
+  /*
+   * Constructors.
+   */
+
+
+  public ReducibleBeans(final Collection<? extends Bean<?>> beans,
                         final Reducer<BeanSelectionCriteria, Bean<?>> r) {
-    super();
-    this.reductions = new ConcurrentHashMap<>();
-    this.f = Objects.requireNonNull(f, "f");
+    this(selectableOf(beans), r);
+  }
+
+  public ReducibleBeans(final Map<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> selections,
+                        final Collection<? extends Bean<?>> beans,
+                        final Reducer<BeanSelectionCriteria, Bean<?>> r) {
+    this(selectableOf(selections, beans), r);
+  }
+
+  public ReducibleBeans(final Selectable<BeanSelectionCriteria, Bean<?>> s,
+                        final Reducer<BeanSelectionCriteria, Bean<?>> r) {
+    this(s, Reducible.ofCaching(s, r));
+  }
+
+  public ReducibleBeans(final Selectable<BeanSelectionCriteria, Bean<?>> s,
+                        final Reducible<BeanSelectionCriteria, Bean<?>> r) {
+    this.s = Objects.requireNonNull(s, "s");
     this.r = Objects.requireNonNull(r, "r");
   }
 
-  // Implemented mostly for convenience.
-  @Override // Beans (Selectable<BeanSelectionCriteria, Bean<?>>)
+
+  /*
+   * Instance methods.
+   */
+
+
+  @Override // Selectable<BeanSelectionCriteria, Bean<?>>
   public final List<Bean<?>> select(final BeanSelectionCriteria c) {
-    return this.f.select(c);
+    return this.s.select(c);
   }
 
-  @Override // ReducibleBeans (Reducible<BeanSelectionCriteria, Bean<?>>)
+  @Override // Reducible<BeanSelectionCriteria, Bean<?>>
   public final Bean<?> reduce(final BeanSelectionCriteria c) {
-    return reductions.computeIfAbsent(c, this::computeReduction);
+    return this.r.reduce(c);
   }
 
-  private final Bean<?> computeReduction(final BeanSelectionCriteria c) {
-    return this.r.reduce(this.f, c);
+
+  /*
+   * Static methods.
+   */
+
+
+  public static final Selectable<BeanSelectionCriteria, Bean<?>> selectableOf(final Collection<? extends Bean<?>> beans) {
+    return selectableOf(Map.of(), beans);
+  }
+
+  public static final Selectable<BeanSelectionCriteria, Bean<?>> selectableOf(final Map<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> selections,
+                                                                              final Collection<? extends Bean<?>> beans) {
+    final Map<BeanSelectionCriteria, List<Bean<?>>> selectionCache = new ConcurrentHashMap<>();
+    final ArrayList<Bean<?>> newBeans = new ArrayList<>(31); // 31 == arbitrary
+    final Set<Bean<?>> newBeansSet = newHashSet(31); // 31 == arbitrary
+    final Set<Bean<?>> newSelectionSet = newHashSet(7); // 7 == arbitrary
+    for (final Entry<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> e : selections.entrySet()) {
+      final List<Bean<?>> selection = e.getValue();
+      final List<Bean<?>> newSelection = new ArrayList<>(selection.size());
+      for (final Bean<?> b : selection) {
+        if (newSelectionSet.add(b)) {
+          newSelection.add(b);
+        }
+        if (newBeansSet.add(b)) {
+          newBeans.add(b);
+        }
+      }
+      newSelectionSet.clear();
+      if (!newSelection.isEmpty()) {
+        Collections.sort(newSelection, byAlternateThenByRankComparator);
+        selectionCache.put(e.getKey(), Collections.unmodifiableList(newSelection));
+      }
+    }
+    for (final Bean<?> bean : beans) {
+      if (newBeansSet.add(bean)) {
+        newBeans.add(bean);
+      }
+    }
+    newBeansSet.clear();
+    if (newBeans.isEmpty()) {
+      return c -> List.of();
+    }
+    Collections.sort(newBeans, byAlternateThenByRankComparator);
+    newBeans.trimToSize();
+    return c -> selectionCache.computeIfAbsent(c, bsc -> newBeans.stream().filter(bsc::selects).toList());
   }
 
 }
