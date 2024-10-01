@@ -62,6 +62,7 @@ public record Dependency(Element element, BeanSelectionCriteria beanSelectionCri
     final TypeMatcher tm = beanSelectionCriteria.typeMatcher();
     element = DelegatingElement.of(element, tm.typeAndElementSource());
     if (element.getKind().isVariable()) {
+      // Replace the bsc so its type is the element's
       beanSelectionCriteria = new BeanSelectionCriteria(tm, element.asType(), beanSelectionCriteria.attributes());
     }
   }

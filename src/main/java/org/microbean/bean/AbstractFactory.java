@@ -16,16 +16,16 @@ package org.microbean.bean;
 import java.util.Objects;
 
 // TODO: this is mildly fouled up. The spirit is right but the implementation is not so hot.
-@Deprecated
+@Deprecated(forRemoval = true)
 abstract class AbstractFactory<I> implements Factory<I> {
 
-  private static final Initializer<?> PASSTHROUGH_INITIALIZER = new AbstractInitializer<Object>();
+  private static final Initializer<?> PASSTHROUGH_INITIALIZER = (i, r) -> i;
 
-  private static final PostInitializer<?> PASSTHROUGH_POSTINITIALIZER = new AbstractPostInitializer<Object>();
+  private static final PostInitializer<?> PASSTHROUGH_POSTINITIALIZER = (i, r) -> i;
 
-  private static final InterceptionsApplicator<?> PASSTHROUGH_INTERCEPTIONSAPPLICATOR = new AbstractInterceptionsApplicator<Object>();
+  private static final InterceptionsApplicator<?> PASSTHROUGH_INTERCEPTIONSAPPLICATOR = (i, r) -> i;
 
-  private static final PreDestructor<?> PASSTHROUGH_PREDESTRUCTOR = new AbstractPreDestructor<Object>();
+  private static final PreDestructor<?> PASSTHROUGH_PREDESTRUCTOR = (i, r) -> i;
 
   private final Producer<I> producer;
 
@@ -68,24 +68,11 @@ abstract class AbstractFactory<I> implements Factory<I> {
   // MUST be idempotent
   @Override // Factory<I>
   @SuppressWarnings("try")
-  public void destroy(final I i, final AutoCloseable destructionRegistry, final Request<I> r) {
+  public void destroy(final I i, final Request<I> r) {
     if (this.destroyed) {
       return;
     }
-    if (destructionRegistry == null) {
-      this.producer.dispose(this.preDestructor.preDestroy(i, r), r);
-    } else {
-      try (destructionRegistry) {
-        this.producer.dispose(this.preDestructor.preDestroy(i, r), r);
-      } catch (final RuntimeException | Error e) {
-        throw e;
-      } catch (final InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new DestructionException(e.getMessage(), e);
-      } catch (final Exception e) {
-        throw new DestructionException(e.getMessage(), e);
-      }
-    }
+    this.producer.dispose(this.preDestructor.preDestroy(i, r), r);
     this.destroyed = true;
   }
 

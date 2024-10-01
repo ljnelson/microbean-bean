@@ -22,16 +22,47 @@ import static java.util.Collections.unmodifiableList;
 
 import static org.microbean.bean.Ranked.DEFAULT_RANK;
 
-public class RankedReducer<C, T extends Ranked> implements Reducer<C, T> {
+/**
+ * A {@link Reducer} implementation that works with {@link Ranked} objects.
+ *
+ * @param <C> the type of criteria
+ *
+ * @param <T> a {@link Ranked} type
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ *
+ * @see #reduce(List, Object, BiFunction)
+ */
+public final class RankedReducer<C, T extends Ranked> implements Reducer<C, T> {
 
-  public RankedReducer() {
+
+  /*
+   * Static fields.
+   */
+
+
+  private static final RankedReducer<?, ?> INSTANCE = new RankedReducer<>();
+
+
+  /*
+   * Constructors.
+   */
+
+
+  private RankedReducer() {
     super();
   }
 
+
+  /*
+   * Instance methods.
+   */
+
+
   @Override
-  public T reduce(final List<? extends T> elements,
-                  final C c,
-                  final BiFunction<? super List<? extends T>, ? super C, ? extends T> failureHandler) {
+  public final T reduce(final List<? extends T> elements,
+                        final C c,
+                        final BiFunction<? super List<? extends T>, ? super C, ? extends T> failureHandler) {
     if (elements == null || elements.isEmpty()) {
       return null;
     } else if (elements.size() == 1) {
@@ -109,6 +140,28 @@ public class RankedReducer<C, T extends Ranked> implements Reducer<C, T> {
     }
 
     return candidate;
+  }
+
+
+  /*
+   * Static methods.
+   */
+
+
+  /**
+   * Returns a {@link RankedReducer} implementation.
+   *
+   * @return a {@link RankedReducer} implementation; never {@code null}
+   *
+   * @nullability This method never returns {@code null}.
+   *
+   * @idempotency This method is idempotent and deterministic.
+   *
+   * @threadsafety This method is safe for concurrent use by multiple threads.
+   */
+  @SuppressWarnings("unchecked")
+  public static final <C, T extends Ranked> Reducer<C, T> of() {
+    return (Reducer<C, T>)INSTANCE;
   }
 
 }

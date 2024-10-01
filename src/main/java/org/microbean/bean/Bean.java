@@ -28,8 +28,32 @@ import static org.microbean.bean.ConstantDescs.CD_Bean;
 import static org.microbean.bean.ConstantDescs.CD_Factory;
 import static org.microbean.bean.ConstantDescs.CD_Id;
 
+/**
+ * A ({@link Constable}) pairing of an {@link Id} with a {@link Factory}.
+ *
+ * @param <I> the type of the contextual instances the associaed {@link Factory} creates
+ *
+ * @param id the {@link Id}; must not be {@code null}
+ *
+ * @param factory the {@link Factory}; must not be {@code null}
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ *
+ * @see Factory
+ *
+ * @see Id
+ */
 public final record Bean<I>(Id id, Factory<I> factory) implements Aggregate, Constable, Ranked {
 
+  /**
+   * Creates a new {@link Bean}.
+   *
+   * @param id the {@link Id}; must not be {@code null}
+   *
+   * @param factory the {@link Factory}; must not be {@code null}
+   *
+   * @exception NullPointerException if either argument is {@code null}
+   */
   public Bean {
     Objects.requireNonNull(id, "id");
     Objects.requireNonNull(factory, "factory");
@@ -40,6 +64,13 @@ public final record Bean<I>(Id id, Factory<I> factory) implements Aggregate, Con
     return this.id().alternate();
   }
 
+  /**
+   * Returns this {@link Bean}, forcibly cast appropriately.
+   *
+   * @param <X> the type of contextual instances this {@link Bean} creates
+   *
+   * @return this {@link Bean}
+   */
   @SuppressWarnings("unchecked")
   public final <X> Bean<X> cast() {
     return (Bean<X>)this;
@@ -67,8 +98,7 @@ public final record Bean<I>(Id id, Factory<I> factory) implements Aggregate, Con
     if (other == this) {
       return true;
     } else if (other != null && other.getClass() == this.getClass()) {
-      return
-        Objects.equals(this.id(), ((Bean<?>)other).id());
+      return Objects.equals(this.id(), ((Bean<?>)other).id());
     } else {
       return false;
     }

@@ -45,7 +45,8 @@ final class TestBean {
   final void testConstableStuff() {
     final Factory<String> f = new Constant<>("Hello");
     final Id id =
-      new Id(new BeanTypeList(List.of(tes.declaredType(String.class), tes.declaredType(Object.class)), tes, new SameTypeEquality(tes)),
+      new Id(List.of(tes.declaredType(String.class),
+                     tes.declaredType(Object.class)),
              anyAndDefaultQualifiers(),
              SINGLETON_ID);
     assertTrue(id instanceof Constable);

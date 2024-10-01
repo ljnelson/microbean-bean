@@ -16,144 +16,35 @@ package org.microbean.bean;
 /**
  * A representation of a {@link Factory}'s {@linkplain Factory#create(Request) creation activity}.
  *
- * <p>Most {@link Creation} implementations will, and should, also be {@link AutoCloseableRegistry} implementations.</p>
- *
  * @param <I> the type of instance being created
  *
  * @author <a href="https://about.me/lairdnelson" target="_parent">Laird Nelson</a>
  */
+@FunctionalInterface
 public interface Creation<I> {
 
-
   /**
-   * Signals that the supplied {@code instance} has been created and is about to be made available for use.
+   * Signals that the supplied {@code instance} has been created, typically by an invocation of a {@link Factory}'s
+   * {@link Factory#create(Request) create(Request)} method, and is about to be made available for use.
    *
    * <p>This method is typically invoked from within a {@link Factory#create(Request)} implementation immediately prior
    * to its returning a value.</p>
    *
-   * <p>The default implementation of this method does nothing.</p>
+   * <p>It is permissible for an implementation of this method to do nothing.</p>
    *
    * @param instance the instance that was created; must not be {@code null}
    *
-   * @exception NullPointerException if {@code instance} was {@code null}
+   * @exception NullPointerException if {@code instance} was {@code null} and the implementation does not support {@code
+   * null} arguments
    *
    * @exception IllegalArgumentException if {@code instance} was found to be unsuitable for any reason
-   *
-   * @idempotency Overrides of this method must be idempotent.
-   *
-   * @threadsafety Overrides of this method must be safe for concurrent use by multiple threads.
-   */
-  // MUST be idempotent
-  // For incomplete instances
-  public void created(final I instance);
-
-
-  /*
-   * Returns the {@link BeanSelectionCriteria} that is in effect (and that is the reason for which this {@link Creation}
-   * has been created), if known, or {@code null} if not.
-   *
-   * @return the {@link BeanSelectionCriteria} that is in effect, or {@code null}
-   *
-   * @nullability Implementations of this method may return {@code null}.
-   */
-  // public BeanSelectionCriteria beanSelectionCriteria();
-
-  /*
-   * Clones this {@link Creation} such that the resulting clone will return the supplied {@link BeanSelectionCriteria}
-   * from any invocation of its {@link #beanSelectionCriteria()} method, and, <strong>critically</strong>, if this
-   * {@link Creation} implementation implements {@link AutoCloseableRegistry}, arranges to have the resulting clone
-   * {@linkplain AutoCloseableRegistry#register(AutoCloseable) registered with} its immediate ancestor (this {@link
-   * Creation}) such that {@linkplain #close() closing} the ancestor (this {@link Creation}) will also {@linkplain
-   * #close() close} the clone.
-   *
-   * <p>If an implementation of this method does not adhere to these requirements, undefined behavior, and possibly
-   * memory leaks, will occur.</p>
-   *
-   * @param beanSelectionCriteria the {@link BeanSelectionCriteria} that is the reason for which the resulting clone is
-   * being returned; may be {@code null}
-   *
-   * @return a clone of this {@link Creation}; never {@code null}
-   *
-   * @see #beanSelectionCriteria()
-   *
-   * @see #close()
-   *
-   * @see AutoCloseableRegistry
-   *
-   * @see AutoCloseableRegistry#register(AutoCloseable)
-   *
-   * @threadsafety Implementations of this method must be safe for concurrent use by multiple threads.
-   */
-  // public Creation<I> newChild(final BeanSelectionCriteria beanSelectionCriteria);
-
-  /*
-   * Closes this {@link Creation}, and, if this {@link Creation} implementation implements {@link
-   * AutoCloseableRegistry}, any clones that were {@linkplain AutoCloseableRegistry#register(AutoCloseable) registered
-   * with it}.
-   *
-   * <p>{@link Factory} implementations (and other user-authored code) normally should not invoke this method, and
-   * indeed doing so may result in undefined behavior and/or an {@link IllegalStateException} being thrown.</p>
-   *
-   * <p>Invoking this method during actual creation may cause undefined behavior and/or an {@link IllegalStateException}
-   * to be thrown.</p>
-   *
-   * @exception IllegalStateException if it is not legal yet to close this {@link Creation}
-   *
-   * @see #clone(BeanSelectionCriteria)
-   *
-   * @see AutoCloseableRegistry
    *
    * @idempotency Implementations of this method must be idempotent.
    *
    * @threadsafety Implementations of this method must be safe for concurrent use by multiple threads.
    */
   // MUST be idempotent
-  // During creation (as opposed to destruction) this method should throw an IllegalStateException.
-  // @Override // AutoCloseable
-  // public void close();
-
-
-  /*
-   * Default methods.
-   */
-
-
-  /**
-   * Casts this {@link Creation} to the inferred return type and returns it.
-   *
-   * <p>Overrides of this default method must return this {@link Creation} cast to the apppropriate type. Any other
-   * return value will result in undefined behavior.</p>
-   *
-   * @param <J> the type of the instance being created
-   *
-   * @return this {@link Creation}, cast to an appropriate type; never {@code null}
-   *
-   * @exception ClassCastException if the cast could not be performed for any reason
-   */
-  public default <J> Creation<J> cast() {
-    return cast(this);
-  }
-
-
-  /*
-   * Static methods.
-   */
-
-
-  /**
-   * Casts the supplied {@link Creation} to the inferred return type and returns it.
-   *
-   * @param <I> the type of instance being created
-   *
-   * @param c the {@link Creation} to cast and return; may be {@code null}
-   *
-   * @return the {@link Creation}, cast to an appropriate type, or {@code null}
-   *
-   * @exception ClassCastException if the cast could not be performed for any reason
-   */
-  @SuppressWarnings("unchecked")
-  public static <I> Creation<I> cast(final Creation<?> c) {
-    return (Creation<I>)c;
-  }
+  // For incomplete instances; see also https://stackoverflow.com/questions/50202523/creationalcontext-should-a-custom-bean-always-call-push-from-its-create-met
+  public void created(final I instance);
 
 }

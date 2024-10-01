@@ -23,55 +23,88 @@ import java.util.Optional;
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 
 /**
- * A creator and destroyer of an instance of something.
+ * A creator and destroyer of contextual instances of a particular type.
  *
- * @param <I> the type of the instances this {@link Factory} creates and destroys
+ * @param <I> the type of the contextual instances this {@link Factory} creates and destroys
  *
  * @author <a href="https://about.me/lairdnelson/" target="_top">Laird Nelson</a>
  */
 @FunctionalInterface
 public interface Factory<I> extends Aggregate, Constable {
 
+  /**
+   * Creates a new contextual instance, possibly using the supplied {@link Request}, if it is non-{@code null}, to
+   * acquire its {@linkplain #dependencies() dependencies}.
+   *
+   * <p>Implementations of this method must not call {@link #singleton()}.</p>
+   *
+   * <p>Implementations of this method should consider calling {@link Creation#created(Object)} on the supplied {@link
+   * Request} with the contextual instance about to be returned.</p>
+   *
+   * @param r a {@link Request} responsible for the demand for creation and used for {@linkplain ReferenceSelector
+   * acquiring any needed dependencies}; <strong>may be {@code null}</strong> in early, uncommon bootstrap-like
+   * situations
+   *
+   * @return a new contextual instance, or {@code null}
+   *
+   * @exception CreationException if an error occurs
+   *
+   * @see Request
+   *
+   * @see ReferenceSelector
+   *
+   * @see Creation
+   */
   public I create(final Request<I> r);
 
+  /**
+   * Returns the sole contextual instance of this {@link Factory}'s type, if there is one, or {@code null} in the very
+   * common case that there is not.
+   *
+   * <p>The default implementation of this method returns {@code null}.</p>
+   *
+   * <p>Overrides of this method should not call {@link #create(Request)}.</p>
+   *
+   * <p>Overrides of this method must be idempotent and must return a determinate value.</p>
+   *
+   * @return the sole contextual instance of this {@link Factory}'s type, or (commonly) {@code null}
+   */
   public default I singleton() {
     return null;
   }
 
+  /**
+   * Returns {@code true} if this {@link Factory} implementation destroys its {@linkplain #create(Request) created}
+   * contextual instances in some way, or {@code false} if it does not.
+   *
+   * <p>The default implementation of this method returns {@code true}.</p>
+   *
+   * <p>Overrides of this method must be idempotent and return a determinate value.</p>
+   *
+   * @return {@code true} if this {@link Factory} implementation destroys its {@linkplain #create(Request) created}
+   * contextual instances in some way; {@code false} otherwise
+   *
+   * @see #destroy(Object, Request)
+   */
   public default boolean destroys() {
     return true;
   }
 
   // MUST be idempotent
   // If i is an AutoCloseable, MUST be idempotent
-  // autoCloseableRegistry's close() MUST be idempotent
-  public default void destroy(final I i, final AutoCloseable autoCloseableRegistry, final Request<I> request) {
+  //
+  // TODO: rename back to destroy()
+  public default void destroy(final I i, final Request<I> creationRequest) {
     if (i instanceof AutoCloseable ac) {
-      final Runnable r = () -> {
-        try {
-          ac.close();
-        } catch (final RuntimeException | Error re) {
-          throw re;
-        } catch (final InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new DestructionException(e.getMessage(), e);
-        } catch (final Exception e) {
-          throw new DestructionException(e.getMessage(), e);
-        }
-      };
-      if (autoCloseableRegistry == null) {
-        r.run();
-      } else {
-        try (autoCloseableRegistry) {
-          r.run();
-        } catch (final RuntimeException | Error re) {
-          throw re;
-        } catch (final InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new DestructionException(e.getMessage(), e);
-        } catch (final Exception e) {
-          throw new DestructionException(e.getMessage(), e);
-        }
+      try {
+        ac.close();
+      } catch (final RuntimeException | Error re) {
+        throw re;
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new DestructionException(e.getMessage(), e);
+      } catch (final Exception e) {
+        throw new DestructionException(e.getMessage(), e);
       }
     }
   }
