@@ -71,22 +71,12 @@ final class TestConstableSemantics {
   }
 
   @Test
-  final void testReferenceTypeList() throws ReflectiveOperationException {
-    final ReferenceTypeList list =
-      new ReferenceTypeList(List.of(tes.declaredType(String.class),
-                                    tes.declaredType(Object.class)),
-                            tes,
-                            new SameTypeEquality(tes));
-    assertEquals(list, Constables.describeConstable(list).orElseThrow().resolveConstantDesc(privateLookupIn(ReferenceTypeList.class, lookup())));
-  }
-
-  @Test
   final void testId() throws ReflectiveOperationException {
     final Id id =
-      new Id(new BeanTypeList(List.of(tes.declaredType(String.class), tes.declaredType(Object.class)), tes, new SameTypeEquality(tes)),
+      new Id(List.of(tes.declaredType(String.class), tes.declaredType(Object.class)),
              anyAndDefaultQualifiers(),
              SINGLETON_ID);
-    assertEquals(id, Constables.describeConstable(id).orElseThrow().resolveConstantDesc(privateLookupIn(ReferenceTypeList.class, lookup())));
+    assertEquals(id, Constables.describeConstable(id).orElseThrow().resolveConstantDesc(lookup()));
   }
 
   /*

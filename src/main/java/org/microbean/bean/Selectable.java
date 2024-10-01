@@ -47,6 +47,8 @@ public interface Selectable<C, T> {
    * @param criteria the criteria to use; may be {@code null}
    *
    * @return an immuable sublist of this {@link Selectable}'s elements; never {@code null}
+   *
+   * @see #list()
    */
   // Filters this thing according to the supplied criteria, producing a List.
   // List not Stream to permit caching
@@ -108,11 +110,15 @@ public interface Selectable<C, T> {
   @SuppressWarnings("unchecked")
   public static <C, E> Selectable<C, E> of(final Collection<? extends E> collection, final BiFunction<? super E, ? super C, ? extends Boolean> f) {
     Objects.requireNonNull(f, "f");
-    return collection.isEmpty() ? c -> List.of() : c -> (List<E>)collection.stream()
+    return collection.isEmpty() ? of() : c -> (List<E>)collection.stream()
       .filter(e -> f.apply(e, c))
       .toList();
   }
 
+  public static <C, E> Selectable<C, E> of() {
+    return c -> List.of();
+  }
+  
   /**
    * Returns a {@link Selectable} using the supplied {@link Collection} as its elements, and the supplied {@link
    * BiFunction} as its <em>selector function</em>.

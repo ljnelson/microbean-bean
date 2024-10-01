@@ -29,6 +29,10 @@ import java.util.function.Function;
  * <p>This interface is related to, but should not be confused with, the {@link Reducer} interface, which can be used to
  * build {@link Reducible} instances.</p>
  *
+ * @param <C> the type of criteria
+ *
+ * @param <T> the element type
+ *
  * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
  *
  * @see #reduce(Object)
@@ -43,11 +47,14 @@ public interface Reducible<C, T> {
    * Given a criteria object, which may be {@code null}, returns an object that represents the <em>reduction</em> of a
    * notional collection of objects.
    *
+   * <p>Most {@link Reducible} implementations will return determine values from invocations of this method, but there
+   * is no requirement to do so.</p>
+   *
    * @param criteria the criteria; may be {@code null} to indicate no criteria
    *
    * @return a single object, or {@code null}
    *
-   * @exception ReductionException if an error occurs
+   * @exception ReductionException if reduction could not occur or if an error occurs
    */
   public T reduce(final C criteria);
 
@@ -67,8 +74,7 @@ public interface Reducible<C, T> {
                                           final BiFunction<? super List<? extends E>, ? super C, ? extends E> failureHandler) {
     Objects.requireNonNull(selectable, "selectable");
     Objects.requireNonNull(r, "r");
-    final BiFunction<? super List<? extends E>, ? super C, ? extends E> fh =
-      failureHandler == null ? Reducer::fail : failureHandler;
+    final BiFunction<? super List<? extends E>, ? super C, ? extends E> fh = Objects.requireNonNull(failureHandler, "failureHandler");
     return c -> r.reduce(selectable.select(c), c, fh);
   }
 

@@ -13,6 +13,8 @@
  */
 package org.microbean.bean;
 
+import java.lang.System.Logger;
+
 import java.lang.constant.ClassDesc;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDesc;
@@ -44,6 +46,8 @@ import javax.lang.model.type.WildcardType;
 
 import org.microbean.lang.TypeAndElementSource;
 
+import static java.lang.System.Logger.Level.WARNING;
+
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
 
 import static org.microbean.bean.ConstantDescs.CD_TypeMatcher;
@@ -59,7 +63,15 @@ import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
  *
  * @see #matches(TypeMirror, TypeMirror)
  */
-public class TypeMatcher implements Constable {
+public final class TypeMatcher implements Constable {
+
+
+  /*
+   * Static fields.
+   */
+
+
+  private static final Logger LOGGER = System.getLogger(TypeMatcher.class.getName());
 
 
   /*
@@ -102,10 +114,7 @@ public class TypeMatcher implements Constable {
   /**
    * Returns an {@link Optional} housing a {@link ConstantDesc} that represents this {@link TypeMatcher}.
    *
-   * <p>This method never returns {@code null}. Overrides must not return {@code null}.</p>
-   *
-   * <p>Subclasses of {@link TypeMatcher} that add internal state will almost certainly have to override this
-   * method.</p>
+   * <p>This method never returns {@code null}.</p>
    *
    * <p>The default implementation of this method relies on the presence of a {@code public} constructor that accepts a
    * single {@link TypeAndElementSource}-typed argument.</p>
@@ -119,7 +128,7 @@ public class TypeMatcher implements Constable {
    * @see Constable#describeConstable()
    */
   @Override // Constable
-  public Optional<? extends ConstantDesc> describeConstable() {
+  public final Optional<? extends ConstantDesc> describeConstable() {
     return (this.tes instanceof Constable c ? c.describeConstable() : Optional.<ConstantDesc>empty())
       .map(tesDesc -> DynamicConstantDesc.of(BSM_INVOKE,
                                              MethodHandleDesc.ofConstructor(ClassDesc.of(this.getClass().getName()),
@@ -145,9 +154,12 @@ public class TypeMatcher implements Constable {
    * 2.4.2.1 of the CDI specification</a>; {@code false} otherwise
    *
    * @exception NullPointerException if either argument is {@code null}
+   *
+   * @exception IllegalArgumentException if either type is any type other than an {@linkplain TypeKind#ARRAY array
+   * type}, a {@link TypeKind#isPrimitive() primitive type}, or a {@linkplain TypeKind#DECLARED declared type}
    */
   // Is the payload assignable to the receiver? That is, does the payload "match the receiver", in CDI parlance?
-  public boolean matches(final TypeMirror receiver, final TypeMirror payload) {
+  public final boolean matches(final TypeMirror receiver, final TypeMirror payload) {
     // "A bean is assignable to a given injection point if:
     //
     // "The bean has a bean type [payload] that matches the required type [receiver]. For this purpose..."
@@ -244,7 +256,7 @@ public class TypeMatcher implements Constable {
                     // List<Number> and List<String>. According to the JLS, neither List<Number>[] nor List<String>[] is
                     // parameterized.
                     //
-                    // In this example, if we get here, we have only proven that List[] is "identical" to List[].
+                    // In this example, if we get here, we have only proven that List[] is "identical to" List[].
                     //
                     // The "if the type is parameterized" clause is tough. Which type is under discussion? "the type"
                     // seems to refer to the "identical raw type". But a raw type by definition is not parameterized, so
@@ -772,14 +784,15 @@ public class TypeMatcher implements Constable {
   // parameterized, or else "bean type parameter" resolution would never work. See
   // https://stackoverflow.com/questions/76493672/when-cdi-speaks-of-a-parameterized-type-does-it-also-incorrectly-mean-array-typ.
   //
-  // The semantics CDI wants to express are really: can t yield a raw type? See #yieldsRawType(TypeMirror) below.
+  // The semantics CDI wants to express are really: can t *yield* a raw type, for a certain definition of "yield"? See
+  // #yieldsRawType(TypeMirror) below.
   private static final boolean cdiParameterized(final TypeMirror t) {
     return yieldsRawType(t);
   }
 
-  // Can t yield a raw type?
+  // Can t *yield* a raw type?
   //
-  // To yield a raw type, t must be either:
+  // We say that to yield a raw type, t must be either:
   //
   // * an array type with a parameterized element type
   // * a declared type with at least one type argument

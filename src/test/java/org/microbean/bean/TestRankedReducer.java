@@ -38,7 +38,7 @@ final class TestRankedReducer {
         @Override
         public final boolean alternate() { return true; }
       };
-    assertSame(a1, new RankedReducer<>().reduce(List.of(a0, a1), null));
+    assertSame(a1, RankedReducer.of().reduce(List.of(a0, a1), null));
   }
 
   @Test
@@ -48,7 +48,7 @@ final class TestRankedReducer {
         public final boolean alternate() { return true; }
       };
     final Ranked a1 = new Ranked() {};
-    assertSame(a0, new RankedReducer<>().reduce(List.of(a0, a1), null));
+    assertSame(a0, RankedReducer.of().reduce(List.of(a0, a1), null));
   }
 
   @Test
@@ -56,7 +56,7 @@ final class TestRankedReducer {
     final Ranked a0 = new Ranked() {};
     final Ranked a1 = new Ranked() {};
     assertNotSame(a0, a1);
-    assertThrows(AmbiguousReductionException.class, () -> new RankedReducer<>().reduce(List.of(a0, a1), null));
+    assertThrows(AmbiguousReductionException.class, () -> RankedReducer.of().reduce(List.of(a0, a1), null));
   }
 
   @Test
@@ -70,7 +70,7 @@ final class TestRankedReducer {
         public final boolean alternate() { return true; }
       };
     assertNotSame(a0, a1);
-    assertThrows(AmbiguousReductionException.class, () -> new RankedReducer<>().reduce(List.of(a0, a1), null));
+    assertThrows(AmbiguousReductionException.class, () -> RankedReducer.of().reduce(List.of(a0, a1), null));
   }
 
   @Test
@@ -81,7 +81,7 @@ final class TestRankedReducer {
         public final int rank() { return 1; }
       };
     // Surprising, perhaps, but 100% correct: ranks only matter when alternate() returns true.
-    assertThrows(AmbiguousReductionException.class, () -> new RankedReducer<>().reduce(List.of(r0, r1), null));
+    assertThrows(AmbiguousReductionException.class, () -> RankedReducer.of().reduce(List.of(r0, r1), null));
   }
 
   @Test
@@ -90,7 +90,7 @@ final class TestRankedReducer {
     final Ranked r1 = new Ranked() {};
     assertNotSame(r0, r1);
     // Surprising, perhaps, but 100% correct: ranks only matter when alternate() returns true.
-    assertThrows(AmbiguousReductionException.class, () -> new RankedReducer<>().reduce(List.of(r0, r1), null));
+    assertThrows(AmbiguousReductionException.class, () -> RankedReducer.of().reduce(List.of(r0, r1), null));
   }
 
   @Test
@@ -101,7 +101,7 @@ final class TestRankedReducer {
       };
     final Ranked r1 = new Ranked() {};
     // Surprising, perhaps, but 100% correct: ranks only matter when alternate() returns true.
-    assertThrows(AmbiguousReductionException.class, () -> new RankedReducer<>().reduce(List.of(r0, r1), null));
+    assertThrows(AmbiguousReductionException.class, () -> RankedReducer.of().reduce(List.of(r0, r1), null));
   }
 
   

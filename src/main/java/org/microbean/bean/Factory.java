@@ -38,11 +38,22 @@ public interface Factory<I> extends Aggregate, Constable {
    *
    * <p>Implementations of this method must not call {@link #singleton()}.</p>
    *
-   * @param r a {@link Request} responsible for the demand for creation; may be {@code null}
+   * <p>Implementations of this method should consider calling {@link Creation#created(Object)} on the supplied {@link
+   * Request} with the contextual instance about to be returned.</p>
+   *
+   * @param r a {@link Request} responsible for the demand for creation and used for {@linkplain ReferenceSelector
+   * acquiring any needed dependencies}; <strong>may be {@code null}</strong> in early, uncommon bootstrap-like
+   * situations
    *
    * @return a new contextual instance, or {@code null}
    *
    * @exception CreationException if an error occurs
+   *
+   * @see Request
+   *
+   * @see ReferenceSelector
+   *
+   * @see Creation
    */
   public I create(final Request<I> r);
 
@@ -54,9 +65,9 @@ public interface Factory<I> extends Aggregate, Constable {
    *
    * <p>Overrides of this method should not call {@link #create(Request)}.</p>
    *
-   * <p>Overrides of this method must be idempotent and return a determinate value.</p>
+   * <p>Overrides of this method must be idempotent and must return a determinate value.</p>
    *
-   * @return the sole contextual instance of this {@link Factory}'s type, or {@code null}
+   * @return the sole contextual instance of this {@link Factory}'s type, or (commonly) {@code null}
    */
   public default I singleton() {
     return null;
@@ -73,7 +84,7 @@ public interface Factory<I> extends Aggregate, Constable {
    * @return {@code true} if this {@link Factory} implementation destroys its {@linkplain #create(Request) created}
    * contextual instances in some way; {@code false} otherwise
    *
-   * @see #destroy(Object, AutoCloseable, Request)
+   * @see #destroy(Object, Request)
    */
   public default boolean destroys() {
     return true;
@@ -81,53 +92,12 @@ public interface Factory<I> extends Aggregate, Constable {
 
   // MUST be idempotent
   // If i is an AutoCloseable, MUST be idempotent
-  // autoCloseableRegistry's close() MUST be idempotent
   //
-  // TODO: autoCloseableRegistry really shouldn't be needed. The contract should be: nuke i if you can, using request,
-  // perhaps, to acquire dependencies (think disposer methods). Whatever is calling this method must take care to call
-  // close() on the ACR that was supplied at creation.
-  //
-  // On the other hand, the CDI API allows for anyone to get a Bean, and then to call destroy on that bean for any
-  // reason.
-  //
-  // Additionally, it is pretty clear that in the CDI API, when you get a CreationalContext, it's something that a
-  // Factory implementation is supposed to be able to cast to its "native" representation, and may have many
-  // responsibilities other than push() and release(). So although the destroy() method might not actually call
-  // release() on it, it might want to do other things with it.
-  //
-  // This API kind of sucks, but if we're going to permit a CDI "wrapper" around all this, we have to allow for the same
-  // sort of thing.
-  //
-  // In some ways, we already do: create() takes a Request, which could conceivably be from any implementation, and
-  // destroy() already takes one too.
-  public default void destroy(final I i, final AutoCloseable autoCloseableRegistry, final Request<I> request) {
-    if (autoCloseableRegistry == null) {
-      if (i instanceof AutoCloseable ac) {
-        try {
-          ac.close();
-        } catch (final RuntimeException | Error re) {
-          throw re;
-        } catch (final InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new DestructionException(e.getMessage(), e);
-        } catch (final Exception e) {
-          throw new DestructionException(e.getMessage(), e);
-        }
-      }
-    } else if (i instanceof AutoCloseable ac) {
-      try (autoCloseableRegistry) {
-        ac.close();
-      } catch (final RuntimeException | Error re) {
-        throw re;
-      } catch (final InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new DestructionException(e.getMessage(), e);
-      } catch (final Exception e) {
-        throw new DestructionException(e.getMessage(), e);
-      }
-    } else {
+  // TODO: rename back to destroy()
+  public default void destroy(final I i, final Request<I> creationRequest) {
+    if (i instanceof AutoCloseable ac) {
       try {
-        autoCloseableRegistry.close();
+        ac.close();
       } catch (final RuntimeException | Error re) {
         throw re;
       } catch (final InterruptedException e) {

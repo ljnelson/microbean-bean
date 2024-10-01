@@ -156,14 +156,14 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
 
   /**
    * Returns {@code true} if an invocation of the {@link #selects(Collection, Collection)} method supplied with the
-   * supplied {@link Id}'s {@linkplain BeanTypeList#types() types} and {@linkplain Id#attributes() attributes} returns
-   * {@code true}.
+   * supplied {@link Id}'s {@linkplain Id#types() types} and {@linkplain Id#attributes() attributes} returns {@code
+   * true}.
    *
    * @param id an {@link Id}; must not be {@code null}
    *
    * @return {@code true} if an invocation of the {@link #selects(Collection, Collection)} method supplied with the
-   * supplied {@link Id}'s {@linkplain BeanTypeList#types() types} and {@linkplain Id#attributes() attributes} returns
-   * {@code true}; {@code false} in all other cases
+   * supplied {@link Id}'s {@linkplain Id#types() types} and {@linkplain Id#attributes() attributes} returns {@code
+   * true}; {@code false} in all other cases
    *
    * @exception NullPointerException if {@code id} is {@code null}
    *
@@ -172,11 +172,9 @@ public final record BeanSelectionCriteria(TypeMatcher typeMatcher, // not includ
    * @see Id#types()
    *
    * @see Id#attributes()
-   *
-   * @see BeanTypeList#types()
    */
   public final boolean selects(final Id id) {
-    return this.selects(id.types().types(), id.attributes());
+    return this.selects(id.types(), id.attributes());
   }
 
   public final boolean selects(final Bean<?> bean) {

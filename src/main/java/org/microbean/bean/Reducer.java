@@ -21,16 +21,23 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 /**
- * A {@linkplain FunctionalInterface functional interface} whose implementations can <em>reduce</em> a supplied {@link
- * List} of elements to a single element according to some <em>criteria</em>.
+ * A {@linkplain FunctionalInterface functional interface} whose implementations can either <em>reduce</em> a supplied
+ * {@link List} of elements representing a successful <em>selection</em> to a single element normally drawn or
+ * calculated from the selection according to some <em>criteria</em>, or fail gracefully in the face of ambiguity by
+ * invoking a supplied <em>failure handler</em>.
  *
  * <p>The reduction may be a simple filtering operation, or may be a summing or aggregating operation, or anything
  * else.</p>
  *
- * <p>This interface is related to, but should not be confused with, the {@link Reducible} interface.</p>
+ * <p>This interface is conceptually subordinate to, but should not be confused with, the {@link Reducible}
+ * interface.</p>
  *
  * <p>{@link Reducer} implementations are often used to help build {@link Reducible} implementations. See, for example,
  * {@link Reducible#ofCaching(Selectable, Reducer, BiFunction)}.</p>
+ *
+ * @param <C> the type of criteria
+ *
+ * @param <T> the element type
  *
  * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
  *
@@ -49,20 +56,30 @@ public interface Reducer<C, T> {
    *
    * <p>Implementations of this method must return determinate values.</p>
    *
-   * @param elements the {@link List} to reduce; must not be {@code null}
+   * @param elements the {@link List} to reduce; must not be {@code null}; represents a successful selection from a
+   * larger collection of elements
    *
-   * @param c the criteria effectively describing the reduction; may be {@code null} to indicate no criteria
+   * @param c the criteria effectively describing the initial selection and the desired reduction; may be {@code null}
+   * to indicate no criteria; may be ignored if not needed by an implementation
    *
-   * @param failureHandler a {@link BiFunction} receiving a partial reduction and the criteria that returns a substitute
-   * reduction (or, more commonly, throws an exception); must not be {@code null}
+   * @param failureHandler a {@link BiFunction} receiving a failed reduction (usually a portion of the supplied {@code
+   * elements}), and the selection and reduction criteria, that returns a substitute reduction (or, more commonly,
+   * throws an exception); must not be {@code null}
    *
-   * @return a single element drawn or computed from the supplied {@code elements} which may be {@code null}
+   * @return a single, possibly {@code null}, element normally drawn or computed from the supplied {@code elements}, or
+   * a synthetic value returned by an invocation of the supplied {@code failureHandler}'s {@link
+   * BiFunction#apply(Object, Object)} method
+   *
+   * @exception NullPointerException if {@code elements} or {@code failureHandler} is {@code null}
+   *
+   * @exception ReductionException if the {@code failureHandler} function throws a {@link ReductionException}
    *
    * @see #fail(List, Object)
    */
   // List, not Stream, for equality semantics and caching purposes.
   // List, not Set, because it's much faster and reduction can take care of duplicates if needed
-  // C, not Predicate, because it may not be necessary to actually filter the list
+  // List, not Collection, because you want easy access to the (possibly) only element without creating iterators
+  // C, not Predicate, because it may not be necessary to actually filter the List to perform the reduction
   // failureHandler will receive only those elements that could not be eliminated
   // c is a pass-through used only during failure
   public T reduce(final List<? extends T> elements,
@@ -102,22 +119,44 @@ public interface Reducer<C, T> {
    */
 
 
-  // A Reducer that simply calls its supplied failure handler.
+  // A Reducer that works only when the selection is of size 0 or 1.
+  public static <C, T> Reducer<C, T> ofSimple() {
+    return Reducer::reduceObviously;
+  }
+
+  // A Reducer that simply calls its supplied failure handler no matter what.
   public static <C, T> Reducer<C, T> ofFailing() {
-    return (l, c, fh) -> fh.apply(l, c);
+    return Reducer::failUnconditionally;
   }
 
-  // Default failure handler; call by method reference
+  // Default failure handler; call by method reference. Fails if the selection does not consist of one element.
   public static <C, T> T fail(final List<? extends T> elements, final C c) {
-    return elements.stream().reduce((e0, e1) -> {
-        throw new AmbiguousReductionException(c, elements, "Cannot resolve: " + elements);
-      })
-      .orElseThrow(() -> new UnsatisfiedReductionException((Object)c));
+    if (elements.isEmpty()) {
+      throw new UnsatisfiedReductionException((Object)c);
+    } else if (elements.size() > 1) {
+      throw new AmbiguousReductionException(c, elements, "Cannot reduce: " + elements);
+    }
+    return elements.get(0);
   }
 
-  // Convenience failure handler; call by method reference
+  // Convenience failure handler; call by method reference. Returns null when invoked.
   public static <A, B, C> C returnNull(final A a, final B b) {
     return null;
   }
 
+  private static <C, T> T reduceObviously(final List<? extends T> l,
+                                          final C c,
+                                          final BiFunction<? super List<? extends T>, ? super C, ? extends T> fh) {
+    return
+      l.isEmpty() ? null :
+      l.size() == 1 ? l.get(0) :
+      fh.apply(l, c);
+  }
+
+  private static <C, T> T failUnconditionally(final List<? extends T> l,
+                                              final C c,
+                                              final BiFunction<? super List<? extends T>, ? super C, ? extends T> fh) {
+    return fh.apply(l, c);
+  }
+  
 }

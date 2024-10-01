@@ -24,7 +24,8 @@ import java.util.Objects;
  *
  * @param <I> the type of contextual instances the associated {@link Bean} creates
  *
- * @param beanSelection a non-{@code null} {@link BeanSelection}
+ * @param beanSelection a non-{@code null} {@link BeanSelection} that {@linkplain BeanSelection#contains(Bean) contains}
+ * the <a href="#param-bean">{@code bean}</a> record component
  *
  * @param bean a non-{@code null} {@link Bean}
  *
@@ -33,6 +34,12 @@ import java.util.Objects;
  * @see BeanSelection
  */
 public record BeanReduction<I>(BeanSelection beanSelection, Bean<I> bean) {
+
+
+  /*
+   * Constructors.
+   */
+
 
   /**
    * Creates a new {@link BeanReduction} from an implicit {@link BeanSelection} that selects only the given {@link
@@ -43,6 +50,11 @@ public record BeanReduction<I>(BeanSelection beanSelection, Bean<I> bean) {
    * @param bean the {@link Bean} that is both the sole selection and the reduction; must not be {@code null}
    *
    * @exception NullPointerException if {@code bean} is {@code null}
+   *
+   * @exception IllegalArgumentException if the supplied {@link BeanSelectionCriteria} does not {@linkplain
+   * BeanSelectionCriteria#selects(Bean) select} the supplied {@link Bean}
+   *
+   * @see BeanSelection
    */
   public BeanReduction(final BeanSelectionCriteria beanSelectionCriteria, final Bean<I> bean) {
     this(new BeanSelection(beanSelectionCriteria, List.of(bean)), bean);
@@ -66,6 +78,12 @@ public record BeanReduction<I>(BeanSelection beanSelection, Bean<I> bean) {
     }
   }
 
+
+  /*
+   * Instance methods.
+   */
+
+
   /**
    * Returns this {@link BeanReduction}'s {@link #beanSelection() BeanSelection}'s {@link
    * BeanSelection#beanSelectionCriteria() BeanSelectionCriteria}.
@@ -75,18 +93,6 @@ public record BeanReduction<I>(BeanSelection beanSelection, Bean<I> bean) {
    */
   public final BeanSelectionCriteria beanSelectionCriteria() {
     return this.beanSelection().beanSelectionCriteria();
-  }
-
-  /**
-   * Returns this {@link BeanReduction}, forcibly cast appropriately.
-   *
-   * @param <J> the type of contextual instances created by the {@link Bean} associated with this {@link BeanReduction}
-   *
-   * @return this {@link BeanReduction}
-   */
-  @SuppressWarnings("unchecked")
-  public <J> BeanReduction<J> cast() {
-    return (BeanReduction<J>)this;
   }
 
 }

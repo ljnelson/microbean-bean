@@ -16,7 +16,7 @@ package org.microbean.bean;
 import java.util.Objects;
 
 /**
- * An assignment of a contextual reference to a {@link Dependency}, usually as found by a {@link ReferenceSelector}.
+ * An assignment of a contextual reference to a {@link Dependency}, usually as found by a {@link Request}.
  *
  * @param dependency the {@link Dependency}; must not be {@code null}
  *
@@ -24,6 +24,9 @@ import java.util.Objects;
  *
  * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
  */
+// You're going to be tempted to replace the value component with a Supplier component. Don't do it. An assignment is a
+// value that belongs to, e.g., a field, so even if the value "came from" none/dependent/prototype scope, it was already
+// sourced and "belongs to" the field.
 public record Assignment(Dependency dependency, Object value) {
 
   /**

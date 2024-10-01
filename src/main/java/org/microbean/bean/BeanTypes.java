@@ -15,11 +15,18 @@ package org.microbean.bean;
 
 import java.lang.System.Logger;
 
+import java.lang.constant.ClassDesc;
+import java.lang.constant.Constable;
+import java.lang.constant.ConstantDesc;
+import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodHandleDesc;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -41,48 +48,210 @@ import org.microbean.lang.TypeAndElementSource;
 
 import static java.lang.System.Logger.Level.WARNING;
 
+import static java.lang.constant.ConstantDescs.BSM_INVOKE;
+
 import static java.util.HashSet.newHashSet;
 
 import static java.util.stream.Stream.concat;
 
-public final class BeanTypes {
+import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
+
+/**
+ * A utility for working with <dfn>bean types</dfn>.
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
+ *
+ * @see #beanTypes(TypeMirror)
+ *
+ * @see #legalBeanType(TypeMirror)
+ */
+public final class BeanTypes implements Constable {
+
+
+  /*
+   * Static fields.
+   */
+
 
   private static final Logger LOGGER = System.getLogger(BeanTypes.class.getName());
 
-  private final Map<TypeMirror, List<TypeMirror>> beanTypes;
+
+  /*
+   * Instance fields.
+   */
+
+
+  private final Map<TypeMirror, List<TypeMirror>> beanTypesCache;
 
   private final Comparator<TypeMirror> c;
 
   private final TypeAndElementSource tes;
 
+
+  /*
+   * Constructors.
+   */
+
+
+  /**
+   * Creates a new {@link BeanTypes}.
+   *
+   * @param tes a {@link TypeAndElementSource}; must not be {@code null}
+   */
   public BeanTypes(final TypeAndElementSource tes) {
     super();
     this.tes = Objects.requireNonNull(tes, "tes");
     this.c = new SpecializationComparator();
-    this.beanTypes = new ConcurrentHashMap<>();
+    this.beanTypesCache = new ConcurrentHashMap<>();
   }
 
+
+  /*
+   * Instance methods.
+   */
+
+  /**
+   * Returns an {@link Optional} housing a {@link ConstantDesc} that represents this {@link BeanTypes}.
+   *
+   * <p>This method never returns {@code null}.</p>
+   *
+   * <p>The default implementation of this method relies on the presence of a {@code public} constructor that accepts a
+   * single {@link TypeAndElementSource}-typed argument.</p>
+   *
+   * <p>The {@link Optional} returned by an invocation of this method may be, and often will be, {@linkplain
+   * Optional#isEmpty() empty}.</p>
+   *
+   * @return an {@link Optional} housing a {@link ConstantDesc} that represents this {@link BeanTypes}; never {@code
+   * null}
+   *
+   * @see Constable#describeConstable()
+   */
+  @Override // Constable
+  public final Optional<? extends ConstantDesc> describeConstable() {
+    return (this.tes instanceof Constable c ? c.describeConstable() : Optional.<ConstantDesc>empty())
+      .map(tesDesc -> DynamicConstantDesc.of(BSM_INVOKE,
+                                             MethodHandleDesc.ofConstructor(ClassDesc.of(this.getClass().getName()),
+                                                                            CD_TypeAndElementSource),
+                                             tesDesc));
+  }
+
+  /**
+   * Clears caches that may be used internally by this {@link BeanTypes}.
+   *
+   * @idempotency This method may clear internal state but otherwise has no side effects.
+   *
+   * @threadsafety This method is safe for concurrent use by multiple threads.
+   */
   public final void clearCaches() {
-    this.beanTypes.clear();
+    this.beanTypesCache.clear();
   }
 
+  /**
+   * Returns an immutable {@link List} of {@linkplain #legalBeanType(TypeMirror) legal bean types} that the supplied
+   * {@link TypeMirror} bears.
+   *
+   * @param t a {@link TypeMirror}; must not be {@code null}
+   *
+   * @return an immutable {@link List} of {@linkplain #legalBeanType(TypeMirror) legal bean types} that the supplied
+   * {@link TypeMirror} bears; never {@code null}
+   *
+   * @exception NullPointerException if {@code t} is {@code null}
+   *
+   * @nullability This method never returns {@code null}.
+   *
+   * @idempotency This method is idempotent and returns determinate values.
+   *
+   * @threadsafety This method is safe for concurrent use by multiple threads.
+   */
   public final List<TypeMirror> beanTypes(final TypeMirror t) {
+    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#assignable_parameters
+    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#legal_bean_types
+    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#managed_bean_types
+    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_field_types
+    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_method_types
     return switch (t.getKind()) {
-      // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_field_types
-      // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_method_types
-    case ARRAY -> this.beanTypes.computeIfAbsent(t, t0 -> this.legalBeanType(t) ? List.of(t0, tes.declaredType("java.lang.Object")) : List.of());
-    case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> this.beanTypes.computeIfAbsent(t, t0 -> List.of(t0, tes.declaredType("java.lang.Object")));
-    case DECLARED, TYPEVAR -> this.beanTypes.computeIfAbsent(t, t0 -> supertypes(t0, this::legalBeanType));
+    case ARRAY                                                -> this.beanTypesCache.computeIfAbsent(t, t0 -> legalBeanType(t0) ? List.of(t0, tes.declaredType("java.lang.Object")) : List.of());
+    case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> this.beanTypesCache.computeIfAbsent(t, t0 -> List.of(t0, tes.declaredType("java.lang.Object")));
+    case DECLARED, TYPEVAR                                    -> this.beanTypesCache.computeIfAbsent(t, t0 -> supertypes(t0, BeanTypes::legalBeanType));
     default -> {
-      assert !this.legalBeanType(t);
+      assert !legalBeanType(t);
       yield List.of();
     }
     };
   }
 
-  public final boolean legalBeanType(final TypeMirror t) {
-    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0.html#legal_bean_types
-    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0.html#assignable_parameters
+  final List<TypeMirror> supertypes(final TypeMirror t) {
+    return this.supertypes(t, BeanTypes::returnTrue);
+  }
+
+  private final List<TypeMirror> supertypes(final TypeMirror t, Predicate<? super TypeMirror> p) {
+    final ArrayList<TypeMirror> nonInterfaceTypes = new ArrayList<>(7); // arbitrary size
+    final ArrayList<TypeMirror> interfaceTypes = new ArrayList<>(17); // arbitrary size
+    supertypes(t, p, nonInterfaceTypes, interfaceTypes, newHashSet(13)); // arbitrary size
+    nonInterfaceTypes.trimToSize();
+    interfaceTypes.trimToSize();
+    return
+      concat(nonInterfaceTypes.stream(), // non-interface supertypes are already sorted from most-specific to least
+             interfaceTypes.stream().sorted(this.c)) // have to sort interfaces because you can extend them in any order
+      .toList();
+  }
+
+  private final void supertypes(final TypeMirror t,
+                                final Predicate<? super TypeMirror> p,
+                                final ArrayList<? super TypeMirror> nonInterfaceTypes,
+                                final ArrayList<? super TypeMirror> interfaceTypes,
+                                final Set<? super String> seen) {
+    if (seen.add(name(t))) {
+      if (p.test(t)) {
+        if (isInterface(t)) {
+          interfaceTypes.add(t); // reflexive
+        } else {
+          nonInterfaceTypes.add(t); // reflexive
+        }
+      }
+      for (final TypeMirror directSupertype : tes.directSupertypes(t)) {
+        this.supertypes(directSupertype, p, nonInterfaceTypes, interfaceTypes, seen); // note recursion
+      }
+    }
+  }
+
+
+  /*
+   * Static methods.
+   */
+
+
+  /**
+   * Returns {@code true} if and only if the supplied {@link TypeMirror} is a <dfn>legal bean type</dfn>.
+   *
+   * <p>Legal bean types are, exactly:</p>
+   *
+   * <ol>
+   *
+   * <li>{@linkplain TypeKind#ARRAY Array} types whose {@linkplain ArrayType#getComponentType() component type}s are
+   * legal bean types</li>
+   *
+   * <li>{@linkplain TypeKind#isPrimitive() Primitive} types</li>
+   *
+   * <li>{@linkplain TypeKind#DECLARED Declared} types that contain no {@linkplain TypeKind#WILDCARD wildcard type}s for
+   * every level of containment</li>
+   *
+   * </ol>
+   *
+   * @param t a {@link TypeMirror}; must not be {@code null}
+   *
+   * @return {@code true} if and only if {@code t} is a legal bean type; {@code false} otherwise
+   *
+   * @exception NullPointerException if {@code t} is {@code null}
+   *
+   * @idempotency This method is idempotent and deterministic.
+   *
+   * @threadsafety This method itself is safe for concurrent use by multiple threads, but {@link TypeMirror}
+   * implementations and {@link TypeAndElementSource} implementations may not be safe for such use.
+   */
+  public static final boolean legalBeanType(final TypeMirror t) {
+    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#assignable_parameters
+    // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#legal_bean_types
     return switch (t.getKind()) {
 
     // "A bean type may be an array type."
@@ -90,7 +259,7 @@ public final class BeanTypes {
     // "However, some Java types are not legal bean types: [...] An array type whose component type is not a legal bean
     // type"
     case ARRAY -> {
-      if (!this.legalBeanType(((ArrayType)t).getComponentType())) { // note recursion
+      if (!legalBeanType(((ArrayType)t).getComponentType())) { // note recursion
         if (LOGGER.isLoggable(WARNING)) {
           LOGGER.log(WARNING, t + " has a component type that is an illegal bean type (" + ((ArrayType)t).getComponentType() + ")");
         }
@@ -118,7 +287,7 @@ public final class BeanTypes {
     // This still seems way overstrict to me but there you have it.
     case DECLARED -> {
       for (final TypeMirror typeArgument : ((DeclaredType)t).getTypeArguments()) {
-        if (typeArgument.getKind() != TypeKind.TYPEVAR && !this.legalBeanType(typeArgument)) { // note recursion
+        if (typeArgument.getKind() != TypeKind.TYPEVAR && !legalBeanType(typeArgument)) { // note recursion
           if (LOGGER.isLoggable(WARNING)) {
             LOGGER.log(WARNING, t + " has a type argument that is an illegal bean type (" + typeArgument + ")");
           }
@@ -137,47 +306,6 @@ public final class BeanTypes {
     }
     };
   }
-
-  final List<TypeMirror> supertypes(final TypeMirror t) {
-    return this.supertypes(t, BeanTypes::returnTrue);
-  }
-
-  final List<TypeMirror> supertypes(final TypeMirror t, final Predicate<? super TypeMirror> p) {
-    final ArrayList<TypeMirror> nonInterfaceTypes = new ArrayList<>(17); // 17 == arbitrary
-    final ArrayList<TypeMirror> interfaceTypes = new ArrayList<>(17); // 17 == arbitrary
-    supertypes(t, p, nonInterfaceTypes, interfaceTypes, newHashSet(13));
-    nonInterfaceTypes.trimToSize();
-    interfaceTypes.trimToSize();
-    return
-      concat(nonInterfaceTypes.stream().sorted(this.c),
-             interfaceTypes.stream().sorted(this.c))
-      .toList();
-  }
-
-  private final void supertypes(final TypeMirror t,
-                                final Predicate<? super TypeMirror> p,
-                                final ArrayList<TypeMirror> nonInterfaceTypes,
-                                final ArrayList<TypeMirror> interfaceTypes,
-                                final Set<String> seen) {
-    if (seen.add(name(t))) {
-      if (p.test(t)) {
-        if (isInterface(t)) {
-          interfaceTypes.add(t); // reflexive
-        } else {
-          nonInterfaceTypes.add(t); // reflexive
-        }
-      }
-      for (final TypeMirror directSupertype : tes.directSupertypes(t)) {
-        this.supertypes(directSupertype, p, nonInterfaceTypes, interfaceTypes, seen); // note recursion
-      }
-    }
-  }
-
-
-  /*
-   * Static methods.
-   */
-
 
   static final String name(final TypeMirror t) {
     return switch (t.getKind()) {
@@ -209,7 +337,7 @@ public final class BeanTypes {
 
   private static final String name(final QualifiedNameable qn) {
     final CharSequence n = qn.getQualifiedName();
-    return n.isEmpty() ? name(qn.getSimpleName()) : name(n);
+    return n == null || n.isEmpty() ? name(qn.getSimpleName()) : name(n);
   }
 
   private static final String name(final CharSequence cs) {
@@ -251,13 +379,14 @@ public final class BeanTypes {
       } else if (tes.sameType(t, s)) {
         return 0;
       } else if (tes.subtype(t, s)) {
-        // t is a subtype of s
+        // t is a subtype of s; s is a proper supertype of t
         return -1;
       } else if (tes.subtype(s, t)) {
-        // s is a subtype of t
+        // s is a subtype of t; t is a proper supertype of s
         return 1;
+      } else {
+        return name(t).compareTo(name(s));
       }
-      return name(t).compareTo(name(s));
     }
 
   }

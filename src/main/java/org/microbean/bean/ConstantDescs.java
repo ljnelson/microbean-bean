@@ -19,19 +19,13 @@ public final class ConstantDescs {
 
   public static final ClassDesc CD_Bean = ClassDesc.of("org.microbean.bean.Bean");
 
-  public static final ClassDesc CD_Beans = ClassDesc.of("org.microbean.bean.Beans");
-
   public static final ClassDesc CD_BeanSelectionCriteria = ClassDesc.of("org.microbean.bean.BeanSelectionCriteria");
-
-  public static final ClassDesc CD_BeanTypeList = ClassDesc.of("org.microbean.bean.BeanTypeList");
 
   public static final ClassDesc CD_Dependency = ClassDesc.of("org.microbean.bean.Dependency");
 
   public static final ClassDesc CD_Factory = ClassDesc.of("org.microbean.bean.Factory");
 
   public static final ClassDesc CD_Id = ClassDesc.of("org.microbean.bean.Id");
-
-  public static final ClassDesc CD_ReferenceTypeList = ClassDesc.of("org.microbean.bean.ReferenceTypeList");
 
   public static final ClassDesc CD_TypeMatcher = ClassDesc.of("org.microbean.bean.TypeMatcher");
 

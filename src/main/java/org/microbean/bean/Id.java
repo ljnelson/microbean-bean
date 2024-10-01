@@ -17,9 +17,13 @@ import java.lang.constant.Constable;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import javax.lang.model.type.TypeMirror;
 
 import org.microbean.constant.Constables;
 
@@ -34,25 +38,25 @@ import static java.lang.constant.ConstantDescs.CD_List;
 import static java.lang.constant.ConstantDescs.FALSE;
 import static java.lang.constant.ConstantDescs.TRUE;
 
+import static org.microbean.bean.BeanTypes.legalBeanType;
 import static org.microbean.bean.ConstantDescs.CD_Id;
-import static org.microbean.bean.ConstantDescs.CD_BeanTypeList;
 
 import static org.microbean.qualifier.ConstantDescs.CD_NamedAttributeMap;
 
-public final record Id(BeanTypeList types,
+public final record Id(List<TypeMirror> types,
                        List<NamedAttributeMap<?>> attributes,
                        NamedAttributeMap<?> governingScopeId,
                        boolean alternate,
                        int rank)
   implements Constable, Ranked, ScopeMember {
 
-  public Id(final BeanTypeList types,
+  public Id(final List<TypeMirror> types,
             final List<NamedAttributeMap<?>> attributes,
             final NamedAttributeMap<?> governingScopeId) {
     this(types, attributes, governingScopeId, false, Ranked.DEFAULT_RANK);
   }
 
-  public Id(final BeanTypeList types,
+  public Id(final List<TypeMirror> types,
             final List<NamedAttributeMap<?>> attributes,
             final NamedAttributeMap<?> governingScopeId,
             final int rank) {
@@ -60,7 +64,37 @@ public final record Id(BeanTypeList types,
   }
 
   public Id {
-    Objects.requireNonNull(types, "types");
+    // The code below jumps through some hoops to avoid copying the types list if possible.
+    int size = types.size();
+    if (size == 0) {
+      throw new IllegalArgumentException("types.isEmpty()");
+    }
+    int i = 0;
+    for (; i < size; i++) {
+      if (!legalBeanType(types.get(i))) {
+        break;
+      }
+    }
+    if (i == size) {
+      types = List.copyOf(types);
+    } else {
+      final ArrayList<TypeMirror> newTypes = new ArrayList<>(size);
+      for (int j = 0; j < i; j++) {
+        newTypes.add(types.get(j)); // the type is known to be legal
+      }
+      ++i; // skip past the illegal type i was pointing to
+      for (; i < size; i++) {
+        final TypeMirror t = types.get(i);
+        if (legalBeanType(t)) {
+          newTypes.add(t);
+        }
+      }
+      if (newTypes.isEmpty()) {
+        throw new IllegalArgumentException("types contains no legal bean types: " + types);
+      }
+      newTypes.trimToSize();
+      types = Collections.unmodifiableList(newTypes);
+    }
     attributes = List.copyOf(attributes);
     Objects.requireNonNull(governingScopeId, "governingScopeId");
   }
@@ -69,10 +103,10 @@ public final record Id(BeanTypeList types,
   public final Optional<DynamicConstantDesc<Id>> describeConstable() {
     return Constables.describeConstable(this.attributes())
       .flatMap(attributesDesc -> this.governingScopeId().describeConstable()
-               .flatMap(governingScopeIdDesc -> types.describeConstable()
+               .flatMap(governingScopeIdDesc -> Constables.describeConstable(this.types())
                         .map(typesDesc -> DynamicConstantDesc.of(BSM_INVOKE,
                                                                  MethodHandleDesc.ofConstructor(CD_Id,
-                                                                                                CD_BeanTypeList,
+                                                                                                CD_List,
                                                                                                 CD_List,
                                                                                                 CD_NamedAttributeMap,
                                                                                                 CD_boolean,

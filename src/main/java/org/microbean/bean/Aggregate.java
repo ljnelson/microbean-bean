@@ -22,6 +22,8 @@ import java.util.SequencedSet;
 /**
  * An object with {@linkplain Dependency dependencies}.
  *
+ * <p>By default, {@link Aggregate}s have no dependencies.</p>
+ *
  * @author <a href="https://about.me/lairdnelson/" target="_top">Laird Nelson</a>
  *
  * @see #dependencies()
@@ -46,7 +48,7 @@ public interface Aggregate {
 
   /**
    * Assigns a contextual reference to each of this {@link Aggregate}'s {@link Dependency} instances and returns the
-   * resutling {@link List} of {@link Assignment}s.
+   * resulting {@link List} of {@link Assignment}s.
    *
    * @param r a {@link Request}; must not be {@code null}
    *
