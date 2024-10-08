@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2023 microBean™.
+ * Copyright © 2023–2024 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -28,7 +28,7 @@ final class TestConcurrentHashMapComputation {
   }
 
   @Test
-  final void test() {
+  final void testRemappingFunctionReturningNullResultsInNoNewEntry() {
     final ConcurrentMap<String, String> m = new ConcurrentHashMap<>();
     assertNull(m.computeIfAbsent("key", k -> null));
     assertEquals(0, m.size());

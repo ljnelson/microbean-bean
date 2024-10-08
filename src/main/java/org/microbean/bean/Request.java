@@ -43,24 +43,27 @@ public interface Request<I> extends Creation<I>, ReferenceSelector {
    */
   public BeanReduction<I> beanReduction();
 
-  // Returns a new "child" Request, where "childness" means "in the service of the parent". So a request for a
+  // Returns a "child" Request, where "childness" means "in the service of the parent". So a request for a
   // CoffeeMaker is the logical parent of a request for a Heater, which is the new child.
   //
+  // If the supplied BeanReduction is equal to this Request's current beanReduction(), it is permissible for this
+  // Request to be returned instead.
+  //
   // It is very common for a Request implementation to also be (or house) an AutoCloseableRegistry implementation. So if
-  // the Heater object is in "none"/dependent scope, it should get added to the parent's set of AutoCloseables to be
-  // closed when the parent goes out of scope, and if a child request for a Fuse object gets created, then the Fuse
-  // should be added to the child's set of AutoCloseables, and so on.
+  // the Heater object is in "none"/dependent scope, it should get added to the CoffeeMaker parent's set of
+  // AutoCloseables to be closed when the parent goes out of scope, and if a child request for a Fuse object gets
+  // created, then the Fuse should be added to the Heater child's set of AutoCloseables, and so on.
   //
   // See AutoCloseableRegistry#newChild() for how that part works.
   //
-  // Note that the semantics of *this* newChild(BeanReduction) method don't have the same "tree node"-like quality as
+  // Note that the semantics of this newChild(BeanReduction) method don't have the same "tree node"-like quality as
   // AutoCloseableRegistry#newChild(). That is, there's no requirement that a child Request retain a reference to its
   // parent Request.
-  public <J> Request<J> newChild(final BeanReduction<J> beanReduction);
+  public <J> Request<J> child(final BeanReduction<J> beanReduction);
 
   @SuppressWarnings("unchecked")
-  public default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria) {
-    return this.reference(beanSelectionCriteria, (Creation<R>)this);
+  public default <R> R reference(final AttributedType attributedType) {
+    return this.reference(attributedType, (Creation<R>)this);
   }
 
 }

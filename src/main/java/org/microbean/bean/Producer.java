@@ -13,9 +13,9 @@
  */
 package org.microbean.bean;
 
-import java.util.List;
+import java.util.SequencedSet;
 
-// Subordinate to Factory<I>.
+// Subordinate to Factory<I> (really to Initializer<I>)
 // Akin to CDI's Producer.
 // Handles instance production and disposal, *including intercepted production*.
 // Does NOT handle initialization; see for example https://github.com/search?q=repo%3Aweld%2Fcore+%22.produce%28%29%22+language%3AJava&type=code
@@ -41,7 +41,7 @@ public interface Producer<I> extends Aggregate {
     }
   }
 
-  public default I produce(final Request<I> r) {
+  public default I produce(final Request<?> r) {
     return this.produce(this.assign(r));
   }
 
@@ -51,13 +51,13 @@ public interface Producer<I> extends Aggregate {
    *
    * <p>Implementations of this method must not call {@link #produce(Request)} or an infinite loop may result.</p>
    *
-   * @param dependentContextualReferences a {@link List} of other objects this {@link Producer} needs to create the contextual
-   * instance; must not be {@code null}
+   * @param assignments a {@link SequencedSet} of {@link Assignment}s this {@link Producer} needs to create the
+   * contextual instance; must not be {@code null}
    *
    * @return a new contextual instance, or {@code null}
    *
    * @exception NullPointerException if {@code dependentContextualReferences} is {@code null}
    */
-  public I produce(final List<?> dependentContextualReferences);
+  public I produce(final SequencedSet<? extends Assignment<?>> assignments);
 
 }

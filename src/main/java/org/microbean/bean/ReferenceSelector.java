@@ -13,6 +13,7 @@
  */
 package org.microbean.bean;
 
+@FunctionalInterface
 interface ReferenceSelector {
 
 
@@ -21,25 +22,23 @@ interface ReferenceSelector {
    */
 
 
-  // Yes, this is needed. Consider: the beanSelectionCriteria actually selects two beans. If you want a reference, you
+  // Yes, this is needed. Consider: the attributedType actually selects two beans. If you want a reference, you
   // have to say which one of the matched beans you want to use. You can't just use Id because you're going to need the
   // Factory<R> eventually.
   //
-  // bean can be null, in which case the implementation has to use beanSelectionCriteria to find it.
+  // bean can be null, in which case the implementation has to use attributedType in some deliberately
+  // unspecified way to find it.
   //
-  // Must throw an exception if bean != null && !beanSelectionCriteria.selects(bean)
-  public <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Bean<R> bean, final Creation<R> creation);
+  // Must throw an exception if bean != null and it is not selected in some way by the attributedType
+  public <R> R reference(final AttributedType attributedType, final Bean<R> bean, final Creation<R> creation);
+
 
   /*
    * Default methods.
    */
 
-  public default <R> R reference(final BeanReduction<R> beanReduction, final Creation<R> creation) {
-    return this.reference(beanReduction.beanSelectionCriteria(), beanReduction.bean(), creation);
-  }
-
-  public default <R> R reference(final BeanSelectionCriteria beanSelectionCriteria, final Creation<R> creation) {
-    return this.reference(beanSelectionCriteria, null, creation);
+  public default <R> R reference(final AttributedType attributedType, final Creation<R> creation) {
+    return this.reference(attributedType, null, creation);
   }
 
 }

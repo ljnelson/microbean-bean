@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.StringJoiner;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -150,6 +149,8 @@ public final class BeanTypes implements Constable {
    * Returns an immutable {@link List} of {@linkplain #legalBeanType(TypeMirror) legal bean types} that the supplied
    * {@link TypeMirror} bears.
    *
+   * <p>The returned {@link List} may be empty.</p>
+   *
    * @param t a {@link TypeMirror}; must not be {@code null}
    *
    * @return an immutable {@link List} of {@linkplain #legalBeanType(TypeMirror) legal bean types} that the supplied
@@ -184,7 +185,7 @@ public final class BeanTypes implements Constable {
     return this.supertypes(t, BeanTypes::returnTrue);
   }
 
-  private final List<TypeMirror> supertypes(final TypeMirror t, Predicate<? super TypeMirror> p) {
+  private final List<TypeMirror> supertypes(final TypeMirror t, final Predicate<? super TypeMirror> p) {
     final ArrayList<TypeMirror> nonInterfaceTypes = new ArrayList<>(7); // arbitrary size
     final ArrayList<TypeMirror> interfaceTypes = new ArrayList<>(17); // arbitrary size
     supertypes(t, p, nonInterfaceTypes, interfaceTypes, newHashSet(13)); // arbitrary size

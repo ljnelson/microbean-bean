@@ -151,6 +151,10 @@ public final class RankedReducer<C, T extends Ranked> implements Reducer<C, T> {
   /**
    * Returns a {@link RankedReducer} implementation.
    *
+   * @param <C> the type of criteria
+   *
+   * @param <T> the type of the {@link Ranked} reduction
+   *
    * @return a {@link RankedReducer} implementation; never {@code null}
    *
    * @nullability This method never returns {@code null}.

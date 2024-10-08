@@ -17,11 +17,11 @@ import java.lang.constant.ClassDesc;
 
 public final class ConstantDescs {
 
+  public static final ClassDesc CD_AttributedElement = ClassDesc.of("org.microbean.bean.AttributedElement");
+
+  public static final ClassDesc CD_AttributedType = ClassDesc.of("org.microbean.bean.AttributedType");
+
   public static final ClassDesc CD_Bean = ClassDesc.of("org.microbean.bean.Bean");
-
-  public static final ClassDesc CD_BeanSelectionCriteria = ClassDesc.of("org.microbean.bean.BeanSelectionCriteria");
-
-  public static final ClassDesc CD_Dependency = ClassDesc.of("org.microbean.bean.Dependency");
 
   public static final ClassDesc CD_Factory = ClassDesc.of("org.microbean.bean.Factory");
 
