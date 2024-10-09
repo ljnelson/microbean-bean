@@ -31,7 +31,7 @@ import static org.microbean.bean.ConstantDescs.CD_Id;
 /**
  * A ({@link Constable}) pairing of an {@link Id} with a {@link Factory}.
  *
- * @param <I> the type of the contextual instances the associaed {@link Factory} creates
+ * @param <I> the type of the contextual instances the associated {@link Factory} creates
  *
  * @param id the {@link Id}; must not be {@code null}
  *
@@ -77,7 +77,7 @@ public final record Bean<I>(Id id, Factory<I> factory) implements Aggregate, Con
   }
 
   @Override // Aggregate
-  public final SequencedSet<Dependency> dependencies() {
+  public final SequencedSet<AttributedElement> dependencies() {
     return this.factory().dependencies();
   }
 

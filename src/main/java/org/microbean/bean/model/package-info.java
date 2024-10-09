@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2023–2024 microBean™.
+ * Copyright © 2024 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -11,13 +11,12 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.microbean.bean;
 
-// Subordinate to Factory<I>.
-// Calls preDestroy() methods.
-@FunctionalInterface
-public interface PreDestructor<I> {
-
-  public I preDestroy(final I i, final Request<I> r);
-
-}
+/**
+ * Provides classes and interfaces related to <dfn>demand</dfn> modeled by injection points.
+ *
+ * <p>This package is experimental, incomplete, and subject to change at any moment.</p>
+ *
+ * @author <a href="https://about.me/lairdnelson" target="_parent">Laird Nelson</a>
+ */
+package org.microbean.bean.model;

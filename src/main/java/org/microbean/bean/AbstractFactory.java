@@ -15,7 +15,8 @@ package org.microbean.bean;
 
 import java.util.Objects;
 
-// TODO: this is mildly fouled up. The spirit is right but the implementation is not so hot.
+// TODO: this is mildly fouled up. The spirit is right but the implementation is not so hot. Retaining for now so I can
+// see how the subsidiary parts fit together, which is worth knowing.
 @Deprecated(forRemoval = true)
 abstract class AbstractFactory<I> implements Factory<I> {
 
@@ -55,8 +56,8 @@ abstract class AbstractFactory<I> implements Factory<I> {
 
   @Override // Factory<I>
   public I create(final Request<I> r) {
-    // Produce the product, initialize the product, post-initialize the product, apply business method interceptions to
-    // the product, return the product
+    // Produce the product (with interceptions or not; producer is in charge of that), initialize the product,
+    // post-initialize the product, apply business method interceptions to the product, return the (possibly intercepted) product
     return this.interceptionsApplicator.apply(this.postInitializer.postInitialize(this.initializer.initialize(this.producer.produce(r), r), r), r);
   }
 

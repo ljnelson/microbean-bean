@@ -1,6 +1,14 @@
 # Notes
 
-## Factories, Producers, etc.
+## Model
+
+For every `Factory`:
+* Grab its dependencies
+* Ask a `Selectable` to 
+
+## Obsolete, or Unmaintained
+
+### Factories, Producers, etc.
 
 A `Factory` is the user-visible creation mechanism.
 
@@ -44,7 +52,9 @@ Instead of taking a `Chain` it should take the raw materials to make a chain tha
 * A supplier of arguments (`Supplier<? extends Object[]>`)
 
 This also performs constructor interception.
-** We can break this down further into an "instantiator", which comes up with construction arguments via dependency resolution, and an interceptor that intercepts these arguments and 
+
+** We can break this down further into an "instantiator", which comes up with construction arguments via dependency
+   resolution, and an interceptor that intercepts these arguments and
 
 
 ** This _may_ (haven't decided yet) decompose into something that does the resolution, and the "instantiator", whose job
@@ -53,8 +63,7 @@ This also performs constructor interception.
 * A `PostInitializer`. This calls the product's `postConstruct()` callbacks.
 * A `PreDestructor`. This calls the product's `preDestroy()` callbacks.
 
-
-## `AutoCloseableRegistry` Instances
+### `AutoCloseableRegistry` Instances
 
 An `AutoCloseableRegistry` is an `AutoCloseable` and a collection of `AutoCloseable`s. Therefore it is also a tree.
 

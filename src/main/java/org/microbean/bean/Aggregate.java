@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.SequencedSet;
 
 /**
- * An object with {@linkplain Dependency dependencies}.
+ * An object with {@linkplain AttributedElement dependencies}.
  *
  * <p>By default, {@link Aggregate}s have no dependencies.</p>
  *
@@ -30,24 +30,41 @@ import java.util.SequencedSet;
  */
 public interface Aggregate {
 
-  /**
-   * An immutable, empty {@link SequencedSet}.
+
+  /*
+   * Static fields.
    */
-  public static final SequencedSet<Dependency> EMPTY_DEPENDENCIES = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(0));
+
 
   /**
-   * Returns an unmodifiable {@link SequencedSet} of {@link Dependency} instances.
-   *
-   * @return an unmodifiable {@link SequencedSet} of {@link Dependency} instances; never {@code null}
-   *
-   * @see Dependency
+   * An immutable, empty {@link SequencedSet} of {@link Assignment}s.
    */
-  public default SequencedSet<Dependency> dependencies() {
+  public static final SequencedSet<Assignment<?>> EMPTY_ASSIGNMENTS = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(0));
+
+  /**
+   * An immutable, empty {@link SequencedSet} of {@link AttributedElement}s.
+   */
+  public static final SequencedSet<AttributedElement> EMPTY_DEPENDENCIES = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(0));
+
+
+  /*
+   * Default instance methods.
+   */
+
+
+  /**
+   * Returns an unmodifiable {@link SequencedSet} of {@link AttributedElement} instances.
+   *
+   * @return an unmodifiable {@link SequencedSet} of {@link AttributedElement} instances; never {@code null}
+   *
+   * @see AttributedElement
+   */
+  public default SequencedSet<AttributedElement> dependencies() {
     return EMPTY_DEPENDENCIES;
   }
 
   /**
-   * Assigns a contextual reference to each of this {@link Aggregate}'s {@link Dependency} instances and returns the
+   * Assigns a contextual reference to each of this {@link Aggregate}'s {@link AttributedElement} instances and returns the
    * resulting {@link List} of {@link Assignment}s.
    *
    * @param r a {@link Request}; must not be {@code null}
@@ -56,11 +73,16 @@ public interface Aggregate {
    *
    * @exception NullPointerException if {@code r} is {@code null}
    */
-  public default List<Assignment> assign(final Request<?> r) {
-    final Collection<? extends Dependency> ds = this.dependencies();
-    return ds == null || ds.isEmpty() ? List.of() : ds.stream()
-      .map(d -> new Assignment(d, r.reference(d.beanSelectionCriteria(), r)))
-      .toList();
+  public default SequencedSet<? extends Assignment<?>> assign(final Request<?> r) {
+    final Collection<? extends AttributedElement> ds = this.dependencies();
+    if (ds == null || ds.isEmpty()) {
+      return EMPTY_ASSIGNMENTS;
+    }
+    final SequencedSet<Assignment<?>> assignments = new LinkedHashSet<>();
+    for (final AttributedElement d : ds) {
+      assignments.add(new Assignment<>(d, r.reference(d.attributedType())));
+    }
+    return Collections.unmodifiableSequencedSet(assignments);
   }
 
 }

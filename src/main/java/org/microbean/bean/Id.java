@@ -65,7 +65,7 @@ public final record Id(List<TypeMirror> types,
 
   public Id {
     // The code below jumps through some hoops to avoid copying the types list if possible.
-    int size = types.size();
+    final int size = types.size();
     if (size == 0) {
       throw new IllegalArgumentException("types.isEmpty()");
     }

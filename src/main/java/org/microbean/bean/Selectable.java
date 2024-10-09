@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 /**
- * A notional list of elements from which sublists may be <em>selected</em> according to some <em>criteria</em>.
+ * A notional list of elements from which sublists may be <dfn>selected</dfn> according to some <dfn>criteria</dfn>.
  *
  * @param <C> the type of criteria
  *
@@ -31,6 +31,7 @@ import java.util.function.BiFunction;
  *
  * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
  */
+@FunctionalInterface
 public interface Selectable<C, T> {
 
   /**
@@ -46,7 +47,7 @@ public interface Selectable<C, T> {
    *
    * @param criteria the criteria to use; may be {@code null}
    *
-   * @return an immuable sublist of this {@link Selectable}'s elements; never {@code null}
+   * @return an immutable sublist of this {@link Selectable}'s elements; never {@code null}
    *
    * @see #list()
    */
@@ -115,13 +116,24 @@ public interface Selectable<C, T> {
       .toList();
   }
 
+  /**
+   * Returns a {@link Selectable} whose {@link #select(Object)} method always returns an {@linkplain List#of() empty
+   * {@code List}}.
+   *
+   * @param <C> the type of criteria
+   *
+   * @param <E> the type of the elements
+   *
+   * @return a {@link Selectable} whose {@link #select(Object)} method always returns an {@linkplain List#of() empty
+   * {@code List}}; never {@code null}
+   */
   public static <C, E> Selectable<C, E> of() {
     return c -> List.of();
   }
-  
+
   /**
    * Returns a {@link Selectable} using the supplied {@link Collection} as its elements, and the supplied {@link
-   * BiFunction} as its <em>selector function</em>.
+   * BiFunction} as its <dfn>selector function</dfn>.
    *
    * <p>There is no guarantee that this method will return new {@link Selectable} instances.</p>
    *

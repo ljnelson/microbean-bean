@@ -33,7 +33,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Parameterizable;
 import javax.lang.model.element.QualifiedNameable;
-import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
@@ -46,24 +45,20 @@ import javax.lang.model.type.WildcardType;
 
 import org.microbean.lang.TypeAndElementSource;
 
-import static java.lang.System.Logger.Level.WARNING;
-
 import static java.lang.constant.ConstantDescs.BSM_INVOKE;
-
-import static org.microbean.bean.ConstantDescs.CD_TypeMatcher;
 
 import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
 
 /**
- * A class encapsulating <a
+ * A {@link Matcher} encapsulating <a
  * href="https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#performing_typesafe_resolution">CDI-compatible
  * type matching rules</a>.
  *
  * @author <a href="https://about.me/lairdnelson/" target="_top">Laird Nelson</a>
  *
- * @see #matches(TypeMirror, TypeMirror)
+ * @see #test(TypeMirror, TypeMirror)
  */
-public final class TypeMatcher implements Constable {
+public final class TypeMatcher implements Constable, Matcher<TypeMirror, TypeMirror> {
 
 
   /*
@@ -159,7 +154,8 @@ public final class TypeMatcher implements Constable {
    * type}, a {@link TypeKind#isPrimitive() primitive type}, or a {@linkplain TypeKind#DECLARED declared type}
    */
   // Is the payload assignable to the receiver? That is, does the payload "match the receiver", in CDI parlance?
-  public final boolean matches(final TypeMirror receiver, final TypeMirror payload) {
+  @Override
+  public final boolean test(final TypeMirror receiver, final TypeMirror payload) {
     // "A bean is assignable to a given injection point if:
     //
     // "The bean has a bean type [payload] that matches the required type [receiver]. For this purpose..."
@@ -177,8 +173,7 @@ public final class TypeMatcher implements Constable {
       // identical ['identical' is actually undefined in the specification]..."
       case ARRAY    -> payload.getKind() == TypeKind.ARRAY   && this.identical(elementType(receiver), elementType(payload));
       case DECLARED -> switch (payload.getKind()) {
-        // "...primitive types are considered to match ['match' is not strictly defined in the specification; it is just
-        // assumed the reader knows what is meant] their corresponding wrapper types in java.lang..."
+        // "...primitive types are considered to match their corresponding wrapper types in java.lang..."
         case BOOLEAN  -> named((DeclaredType)receiver, "java.lang.Boolean");
         case BYTE     -> named((DeclaredType)receiver, "java.lang.Byte");
         case CHAR     -> named((DeclaredType)receiver, "java.lang.Character");
@@ -295,7 +290,7 @@ public final class TypeMatcher implements Constable {
                       assert cdiParameterized(pta); // ...because otherwise their raw types would not have been "identical"
                       // "...the bean type parameter [type argument] is assignable to the required type parameter [type
                       // argument] according to [all of] these rules [including 'matching']..."
-                      if (matches(rta, pta)) {
+                      if (test(rta, pta)) { // note recursion
                         continue;
                       }
                       yield false;
@@ -311,6 +306,9 @@ public final class TypeMatcher implements Constable {
                   // the actual type [non-type variable, non-wildcard reference type] [required type argument, receiver] is
                   // assignable to the upper bound, if any, of the type variable [bean type argument, payload] [type
                   // variables have multiple bounds]..."
+                  //
+                  // (This is weird. Yes, the *receiver* type argument is being tested to see if it is assignable to the
+                  // *payload* type argument.)
                   if (assignableToCondensedTypeVariableBounds((TypeVariable)pta, (ReferenceType)rta)) {
                     continue;
                   }
@@ -347,6 +345,9 @@ public final class TypeMatcher implements Constable {
                   // [type argument] are both type variables and the upper bound of the required [receiver] type
                   // parameter [type argument] [a type variable has many bounds?] is assignable to the upper bound [a
                   // type variable has many bounds?], if any, of the bean [payload] type parameter [type argument]"
+                  //
+                  // (This is weird. Yes, the *receiver* type argument is being tested to see if it is assignable to the
+                  // *payload* type argument.)
                   if (condensedTypeVariableBoundsAssignableToCondensedTypeVariableBounds((TypeVariable)pta, (TypeVariable)rta)) {
                     continue;
                   }
@@ -390,8 +391,8 @@ public final class TypeMatcher implements Constable {
   // This implementation chooses TypeAndElementSource#sameType(TypeMirror, TypeMirror), but with one
   // change. TypeAndElementSource#sameType(TypeMirror, TypeMirror) is usually backed by the
   // javax.lang.model.util.Types#isSameType(TypeMirror, TypeMirror) method. That method will return false if either
-  // argument is a wildcard type. This method first checks to see if the arguments are identical (==), regardless of
-  // type.
+  // argument is a wildcard type. This method first checks to see if the arguments are the same Java references (==),
+  // regardless of type.
   private final boolean identical(final TypeMirror receiver, final TypeMirror payload) {
     // CDI has an undefined notion of "identical to". This method attempts to divine and implement the intent. Recall
     // that javax.lang.model.* compares types with "sameType" semantics.

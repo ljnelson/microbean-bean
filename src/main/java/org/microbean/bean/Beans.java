@@ -16,7 +16,6 @@ package org.microbean.bean;
 import java.lang.System.Logger;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,11 +31,9 @@ import static java.util.HashSet.newHashSet;
 
 /**
  * A {@link Selectable} and {@link Reducible} implementation that works with {@link Bean} and {@link
- * BeanSelectionCriteria} instances.
+ * AttributedType} instances.
  *
  * @author <a href="https://about.me/lairdnelson" target="_top">Laird Nelson</a>
- *
- * @see Beans(Map, Collection, Reducer)
  *
  * @see #Beans(Selectable, Reducible)
  *
@@ -50,9 +47,9 @@ import static java.util.HashSet.newHashSet;
  *
  * @see Bean
  *
- * @see BeanSelectionCriteria
+ * @see AttributedType
  */
-public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reducible<BeanSelectionCriteria, Bean<?>> {
+public final class Beans implements Selectable<AttributedType, Bean<?>>, Reducible<AttributedType, Bean<?>> {
 
 
   /*
@@ -77,9 +74,9 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reduci
    */
 
 
-  private final Selectable<BeanSelectionCriteria, Bean<?>> s;
+  private final Selectable<AttributedType, Bean<?>> s;
 
-  private final Reducible<BeanSelectionCriteria, Bean<?>> r;
+  private final Reducible<AttributedType, Bean<?>> r;
 
 
   /*
@@ -87,45 +84,8 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reduci
    */
 
 
-  // Pathological; useful mainly for testing
-  public Beans(final Bean<?>... beans) {
-    this(beans == null ? List.of() : Arrays.asList(beans));
-  }
-
-  public Beans(final Collection<? extends Bean<?>> beans) {
-    this(null, beans, null);
-  }
-
-  public Beans(final Collection<? extends Bean<?>> beans,
-               final Reducer<BeanSelectionCriteria, Bean<?>> r) {
-    this(null, beans, r);
-  }
-
-  public Beans(final Map<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> selections,
-               final Collection<? extends Bean<?>> beans) {
-    this(selections, beans, null);
-  }
-
-  public Beans(final Map<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> selections,
-               final Collection<? extends Bean<?>> beans,
-               final Reducer<BeanSelectionCriteria, Bean<?>> r) {
-    this(cachingSelectableOf(selections == null || selections.isEmpty() ? Map.of() : selections,
-                             beans == null || beans.isEmpty() ? List.of() : beans),
-         r);
-  }
-
-
-  public Beans(final Selectable<BeanSelectionCriteria, Bean<?>> s) {
-    this(s, (Reducer<BeanSelectionCriteria, Bean<?>>)null);
-  }
-
-  public Beans(final Selectable<BeanSelectionCriteria, Bean<?>> s,
-               final Reducer<BeanSelectionCriteria, Bean<?>> r) {
-    this(s, Reducible.ofCaching(s, r == null ? RankedReducer.of() : r));
-  }
-
-  public Beans(final Selectable<BeanSelectionCriteria, Bean<?>> s,
-               final Reducible<BeanSelectionCriteria, Bean<?>> r) {
+  public Beans(final Selectable<AttributedType, Bean<?>> s,
+               final Reducible<AttributedType, Bean<?>> r) {
     this.s = Objects.requireNonNull(s, "s");
     this.r = Objects.requireNonNull(r, "r");
   }
@@ -136,13 +96,13 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reduci
    */
 
 
-  @Override // Selectable<BeanSelectionCriteria, Bean<?>>
-  public final List<Bean<?>> select(final BeanSelectionCriteria c) {
+  @Override // Selectable<AttributedType, Bean<?>>
+  public final List<Bean<?>> select(final AttributedType c) {
     return this.s.select(c);
   }
 
-  @Override // Reducible<BeanSelectionCriteria, Bean<?>>
-  public final Bean<?> reduce(final BeanSelectionCriteria c) {
+  @Override // Reducible<AttributedType, Bean<?>>
+  public final Bean<?> reduce(final AttributedType c) {
     return this.r.reduce(c);
   }
 
@@ -152,19 +112,17 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reduci
    */
 
 
-  public static final Selectable<BeanSelectionCriteria, Bean<?>> cachingSelectableOf(final Collection<? extends Bean<?>> beans) {
-    return cachingSelectableOf(Map.of(), beans);
-  }
-
-  public static final Selectable<BeanSelectionCriteria, Bean<?>> cachingSelectableOf(final Map<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> selections,
-                                                                                     final Collection<? extends Bean<?>> beans) {
-    final Map<BeanSelectionCriteria, List<Bean<?>>> selectionCache = new ConcurrentHashMap<>();
+  public static final Selectable<AttributedType, Bean<?>> cachingSelectableOf(final Matcher<? super AttributedType, ? super Id> idMatcher,
+                                                                              final Map<? extends AttributedType, ? extends List<Bean<?>>> selections,
+                                                                              final Collection<? extends Bean<?>> beans) {
+    Objects.requireNonNull(idMatcher, "idMatcher");
+    final Map<AttributedType, List<Bean<?>>> selectionCache = new ConcurrentHashMap<>();
     final ArrayList<Bean<?>> newBeans = new ArrayList<>(31); // 31 == arbitrary
     final Set<Bean<?>> newBeansSet = newHashSet(31); // 31 == arbitrary
-    if (!selections.isEmpty()) {
-      final Set<Bean<?>> newSelectionSet = newHashSet(7); // 7 == arbitrary
-      for (final Entry<? extends BeanSelectionCriteria, ? extends List<Bean<?>>> e : selections.entrySet()) {
-        final List<Bean<?>> selection = e.getValue();
+    for (final Entry<? extends AttributedType, ? extends List<Bean<?>>> e : selections.entrySet()) {
+      final List<Bean<?>> selection = e.getValue();
+      if (!selection.isEmpty()) {
+        final Set<Bean<?>> newSelectionSet = newHashSet(7); // 7 == arbitrary
         final ArrayList<Bean<?>> newSelection = new ArrayList<>(selection.size());
         for (final Bean<?> b : selection) {
           if (newSelectionSet.add(b)) {
@@ -175,11 +133,9 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reduci
           }
         }
         newSelectionSet.clear();
-        if (!newSelection.isEmpty()) {
-          newSelection.trimToSize();
-          Collections.sort(newSelection, byAlternateThenByRankComparator);
-          selectionCache.put(e.getKey(), Collections.unmodifiableList(newSelection));
-        }
+        newSelection.trimToSize();
+        Collections.sort(newSelection, byAlternateThenByRankComparator);
+        selectionCache.put(e.getKey(), Collections.unmodifiableList(newSelection));
       }
     }
     for (final Bean<?> bean : beans) {
@@ -193,7 +149,7 @@ public class Beans implements Selectable<BeanSelectionCriteria, Bean<?>>, Reduci
     }
     Collections.sort(newBeans, byAlternateThenByRankComparator);
     newBeans.trimToSize();
-    return c -> selectionCache.computeIfAbsent(c, bsc -> newBeans.stream().filter(bsc::selects).toList());
+    return attributedType -> selectionCache.computeIfAbsent(attributedType, at -> newBeans.stream().filter(b -> idMatcher.test(at, b.id())).toList());
   }
 
   private static final <C, T> List<T> empty(final C ignored) {

@@ -16,9 +16,12 @@ package org.microbean.bean;
 import java.util.Objects;
 
 /**
- * An assignment of a contextual reference to a {@link Dependency}, usually as found by a {@link Request}.
+ * An assignment of a contextual reference to an {@link AttributedElement}, usually as {@linkplain
+ * Request#reference(BeanSelectionCriteria) completed by} a {@link Request}.
  *
- * @param dependency the {@link Dependency}; must not be {@code null}
+ * @param <R> the type of contextual reference
+ *
+ * @param assignee the {@link AttributedElement}; must not be {@code null}
  *
  * @param value the contextual reference; may be {@code null}
  *
@@ -27,30 +30,17 @@ import java.util.Objects;
 // You're going to be tempted to replace the value component with a Supplier component. Don't do it. An assignment is a
 // value that belongs to, e.g., a field, so even if the value "came from" none/dependent/prototype scope, it was already
 // sourced and "belongs to" the field.
-public record Assignment(Dependency dependency, Object value) {
+public record Assignment<R>(AttributedElement assignee, R value) {
 
   /**
    * Creates a new {@link Assignment}.
    *
-   * @param dependency the {@link Dependency}; must not be {@code null}
+   * @param assignee the {@link AttributedElement}; must not be {@code null}
    *
    * @param value the contextual reference; may be {@code null}
    */
   public Assignment {
-    Objects.requireNonNull(dependency, "dependency");
-  }
-
-  /**
-   * Creates a new {@link Assignment}.
-   *
-   * @param d the {@link Dependency}; must not be {@code null}
-   *
-   * @param r a {@link Request} used to locate the contextual reference; must not be {@code null}
-   *
-   * @exception NullPointerException if {@code r} is {@code null}
-   */
-  public Assignment(final Dependency d, final Request<?> r) {
-    this(d, r.reference(d.beanSelectionCriteria(), r));
+    Objects.requireNonNull(assignee, "assignee");
   }
 
 }

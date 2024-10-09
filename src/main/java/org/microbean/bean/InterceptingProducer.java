@@ -13,10 +13,9 @@
  */
 package org.microbean.bean;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.SequencedSet;
 
@@ -32,20 +31,29 @@ public final class InterceptingProducer<I> implements Producer<I> {
 
   private final Producer<I> producer;
 
+  @SuppressWarnings("unchecked")
   public InterceptingProducer(final Collection<? extends InterceptorMethod> interceptorMethods,
                               final Producer<I> producer) {
     super();
     this.producer = Objects.requireNonNull(producer, "producer");
-    this.f = ofConstruction(interceptorMethods, (t, a) -> this.produce(Collections.unmodifiableList(Arrays.asList(a))));
+    final SequencedSet<AttributedElement> dependencies = producer.dependencies();
+    this.f = ofConstruction(interceptorMethods, (ignored, argumentsArray) -> {
+        final SequencedSet<Assignment<?>> assignments = new LinkedHashSet<>();
+        int i = 0;
+        for (final AttributedElement dependency : dependencies) {
+          assignments.add(new Assignment<>(dependency, argumentsArray[i++]));
+        }
+        return this.produce(Collections.unmodifiableSequencedSet(assignments));
+      });
   }
 
-  @Override // Producer<I>
-  public final List<Assignment> assign(final Request<?> r) {
+  @Override // Producer<I> (Aggregate)
+  public final SequencedSet<? extends Assignment<?>> assign(final Request<?> r) {
     return this.producer.assign(r);
   }
 
-  @Override // Producer<I>
-  public final SequencedSet<Dependency> dependencies() {
+  @Override // Producer<I> (Aggregate)
+  public final SequencedSet<AttributedElement> dependencies() {
     return this.producer.dependencies();
   }
 
@@ -56,15 +64,19 @@ public final class InterceptingProducer<I> implements Producer<I> {
 
   @Override // Producer<I>
   @SuppressWarnings("unchecked")
-  public final I produce(final Request<I> r) {
-    return (I)this.f.apply(this.dependencies().stream()
-                           .map(d -> new Assignment(d, r).value())
-                           .toArray());
+  public final I produce(final Request<?> r) {
+    final Collection<? extends AttributedElement> dependencies = this.dependencies();
+    final Object[] array = new Object[dependencies.size()];
+    int i = 0;
+    for (final AttributedElement d : dependencies) {
+      array[i++] = r.reference(d.attributedType());
+    }
+    return (I)this.f.apply(array);
   }
 
   @Override // Producer<I>
-  public final I produce(final List<?> dependentContextualReferences) {
-    return this.producer.produce(dependentContextualReferences);
+  public final I produce(final SequencedSet<? extends Assignment<?>> assignments) {
+    return this.producer.produce(assignments);
   }
 
 }

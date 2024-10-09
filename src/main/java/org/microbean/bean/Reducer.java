@@ -56,15 +56,15 @@ public interface Reducer<C, T> {
    *
    * <p>Implementations of this method must return determinate values.</p>
    *
-   * @param elements the {@link List} to reduce; must not be {@code null}; represents a successful selection from a
-   * larger collection of elements
+   * @param elements an immutable {@link List} to reduce; must not be {@code null}; represents a successful selection
+   * from a larger collection of elements
    *
    * @param c the criteria effectively describing the initial selection and the desired reduction; may be {@code null}
    * to indicate no criteria; may be ignored if not needed by an implementation
    *
    * @param failureHandler a {@link BiFunction} receiving a failed reduction (usually a portion of the supplied {@code
    * elements}), and the selection and reduction criteria, that returns a substitute reduction (or, more commonly,
-   * throws an exception); must not be {@code null}
+   * throws an exception); must not be {@code null}; must be invoked if reduction fails or undefined behavior may result
    *
    * @return a single, possibly {@code null}, element normally drawn or computed from the supplied {@code elements}, or
    * a synthetic value returned by an invocation of the supplied {@code failureHandler}'s {@link
@@ -158,5 +158,5 @@ public interface Reducer<C, T> {
                                               final BiFunction<? super List<? extends T>, ? super C, ? extends T> fh) {
     return fh.apply(l, c);
   }
-  
+
 }
