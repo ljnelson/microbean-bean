@@ -15,45 +15,22 @@ package org.microbean.bean;
 
 import java.lang.System.Logger;
 
-import java.lang.constant.ClassDesc;
-import java.lang.constant.Constable;
-import java.lang.constant.ConstantDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodHandleDesc;
-
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.function.Predicate;
 
-import javax.lang.model.element.Element;
-import javax.lang.model.element.QualifiedNameable;
-
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.IntersectionType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
 
 import org.microbean.lang.TypeAndElementSource;
 
 import static java.lang.System.Logger.Level.WARNING;
-
-import static java.lang.constant.ConstantDescs.BSM_INVOKE;
-
-import static java.util.HashSet.newHashSet;
-
-import static java.util.stream.Stream.concat;
-
-import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
 
 /**
  * A utility for working with <dfn>bean types</dfn>.
@@ -64,7 +41,7 @@ import static org.microbean.lang.ConstantDescs.CD_TypeAndElementSource;
  *
  * @see #legalBeanType(TypeMirror)
  */
-public final class BeanTypes implements Constable {
+public final class BeanTypes extends Types {
 
 
   /*
@@ -82,10 +59,6 @@ public final class BeanTypes implements Constable {
 
   private final Map<TypeMirror, List<TypeMirror>> beanTypesCache;
 
-  private final Comparator<TypeMirror> c;
-
-  private final TypeAndElementSource tes;
-
 
   /*
    * Constructors.
@@ -98,9 +71,7 @@ public final class BeanTypes implements Constable {
    * @param tes a {@link TypeAndElementSource}; must not be {@code null}
    */
   public BeanTypes(final TypeAndElementSource tes) {
-    super();
-    this.tes = Objects.requireNonNull(tes, "tes");
-    this.c = new SpecializationComparator();
+    super(tes);
     this.beanTypesCache = new ConcurrentHashMap<>();
   }
 
@@ -109,31 +80,7 @@ public final class BeanTypes implements Constable {
    * Instance methods.
    */
 
-  /**
-   * Returns an {@link Optional} housing a {@link ConstantDesc} that represents this {@link BeanTypes}.
-   *
-   * <p>This method never returns {@code null}.</p>
-   *
-   * <p>The default implementation of this method relies on the presence of a {@code public} constructor that accepts a
-   * single {@link TypeAndElementSource}-typed argument.</p>
-   *
-   * <p>The {@link Optional} returned by an invocation of this method may be, and often will be, {@linkplain
-   * Optional#isEmpty() empty}.</p>
-   *
-   * @return an {@link Optional} housing a {@link ConstantDesc} that represents this {@link BeanTypes}; never {@code
-   * null}
-   *
-   * @see Constable#describeConstable()
-   */
-  @Override // Constable
-  public final Optional<? extends ConstantDesc> describeConstable() {
-    return (this.tes instanceof Constable c ? c.describeConstable() : Optional.<ConstantDesc>empty())
-      .map(tesDesc -> DynamicConstantDesc.of(BSM_INVOKE,
-                                             MethodHandleDesc.ofConstructor(ClassDesc.of(this.getClass().getName()),
-                                                                            CD_TypeAndElementSource),
-                                             tesDesc));
-  }
-
+  
   /**
    * Clears caches that may be used internally by this {@link BeanTypes}.
    *
@@ -171,49 +118,14 @@ public final class BeanTypes implements Constable {
     // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_field_types
     // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_method_types
     return switch (t.getKind()) {
-    case ARRAY                                                -> this.beanTypesCache.computeIfAbsent(t, t0 -> legalBeanType(t0) ? List.of(t0, tes.declaredType("java.lang.Object")) : List.of());
-    case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> this.beanTypesCache.computeIfAbsent(t, t0 -> List.of(t0, tes.declaredType("java.lang.Object")));
-    case DECLARED, TYPEVAR                                    -> this.beanTypesCache.computeIfAbsent(t, t0 -> supertypes(t0, BeanTypes::legalBeanType));
+    case ARRAY                                                -> this.beanTypesCache.computeIfAbsent(t, t0 -> legalBeanType(t0) ? List.of(t0, this.objectType()) : List.of());
+    case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> this.beanTypesCache.computeIfAbsent(t, t0 -> List.of(t0, this.objectType()));
+    case DECLARED, TYPEVAR                                    -> this.beanTypesCache.computeIfAbsent(t, t0 -> this.supertypes(t0, BeanTypes::legalBeanType));
     default -> {
       assert !legalBeanType(t);
       yield List.of();
     }
     };
-  }
-
-  final List<TypeMirror> supertypes(final TypeMirror t) {
-    return this.supertypes(t, BeanTypes::returnTrue);
-  }
-
-  private final List<TypeMirror> supertypes(final TypeMirror t, final Predicate<? super TypeMirror> p) {
-    final ArrayList<TypeMirror> nonInterfaceTypes = new ArrayList<>(7); // arbitrary size
-    final ArrayList<TypeMirror> interfaceTypes = new ArrayList<>(17); // arbitrary size
-    supertypes(t, p, nonInterfaceTypes, interfaceTypes, newHashSet(13)); // arbitrary size
-    nonInterfaceTypes.trimToSize();
-    interfaceTypes.trimToSize();
-    return
-      concat(nonInterfaceTypes.stream(), // non-interface supertypes are already sorted from most-specific to least
-             interfaceTypes.stream().sorted(this.c)) // have to sort interfaces because you can extend them in any order
-      .toList();
-  }
-
-  private final void supertypes(final TypeMirror t,
-                                final Predicate<? super TypeMirror> p,
-                                final ArrayList<? super TypeMirror> nonInterfaceTypes,
-                                final ArrayList<? super TypeMirror> interfaceTypes,
-                                final Set<? super String> seen) {
-    if (seen.add(name(t))) {
-      if (p.test(t)) {
-        if (isInterface(t)) {
-          interfaceTypes.add(t); // reflexive
-        } else {
-          nonInterfaceTypes.add(t); // reflexive
-        }
-      }
-      for (final TypeMirror directSupertype : tes.directSupertypes(t)) {
-        this.supertypes(directSupertype, p, nonInterfaceTypes, interfaceTypes, seen); // note recursion
-      }
-    }
   }
 
 
@@ -306,90 +218,6 @@ public final class BeanTypes implements Constable {
       yield false;
     }
     };
-  }
-
-  static final String name(final TypeMirror t) {
-    return switch (t.getKind()) {
-    case ARRAY -> name(((ArrayType)t).getComponentType()) + "[]";
-    case BOOLEAN -> "boolean";
-    case BYTE -> "byte";
-    case CHAR -> "char";
-    case DECLARED -> name(((DeclaredType)t).asElement());
-    case DOUBLE -> "double";
-    case FLOAT -> "float";
-    case INT -> "int";
-    case INTERSECTION -> {
-      final java.util.StringJoiner sj = new java.util.StringJoiner("&");
-      for (final TypeMirror bound : ((IntersectionType)t).getBounds()) {
-        sj.add(name(bound));
-      }
-      yield sj.toString();
-    }
-    case LONG -> "long";
-    case SHORT -> "short";
-    case TYPEVAR -> name(((TypeVariable)t).asElement());
-    default -> t.toString();
-    };
-  }
-
-  static final String name(final Element e) {
-    return e instanceof QualifiedNameable qn ? name(qn) : name(e.getSimpleName());
-  }
-
-  private static final String name(final QualifiedNameable qn) {
-    final CharSequence n = qn.getQualifiedName();
-    return n == null || n.isEmpty() ? name(qn.getSimpleName()) : name(n);
-  }
-
-  private static final String name(final CharSequence cs) {
-    return cs instanceof String s ? s : cs.toString();
-  }
-
-  private static final boolean isInterface(final TypeMirror t) {
-    return t.getKind() == TypeKind.DECLARED && isInterface(((DeclaredType)t).asElement());
-  }
-
-  private static final boolean isInterface(final Element e) {
-    return e.getKind().isInterface();
-  }
-
-  private static final <T> boolean returnTrue(final T ignored) {
-    return true;
-  }
-
-
-  /*
-   * Inner and nested classes.
-   */
-
-
-  private final class SpecializationComparator implements Comparator<TypeMirror> {
-
-    private SpecializationComparator() {
-      super();
-    }
-
-    @Override
-    public final int compare(final TypeMirror t, final TypeMirror s) {
-      if (t == s) {
-        return 0;
-      } else if (t == null) {
-        return 1; // nulls right
-      } else if (s == null) {
-        return -1; // nulls right
-      } else if (tes.sameType(t, s)) {
-        return 0;
-      } else if (tes.subtype(t, s)) {
-        // t is a subtype of s; s is a proper supertype of t
-        return -1;
-      } else if (tes.subtype(s, t)) {
-        // s is a subtype of t; t is a proper supertype of s
-        return 1;
-      } else {
-        return name(t).compareTo(name(s));
-      }
-    }
-
   }
 
 }
