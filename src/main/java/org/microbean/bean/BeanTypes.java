@@ -118,8 +118,8 @@ public final class BeanTypes extends Types {
     // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_field_types
     // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#producer_method_types
     return switch (t.getKind()) {
-    case ARRAY                                                -> this.beanTypesCache.computeIfAbsent(t, t0 -> legalBeanType(t0) ? List.of(t0, this.objectType()) : List.of());
-    case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> this.beanTypesCache.computeIfAbsent(t, t0 -> List.of(t0, this.objectType()));
+    case ARRAY                                                -> this.beanTypesCache.computeIfAbsent(t, t0 -> legalBeanType(t0) ? List.of(t0, this.javaLangObjectType()) : List.of());
+    case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> this.beanTypesCache.computeIfAbsent(t, t0 -> List.of(t0, this.javaLangObjectType()));
     case DECLARED, TYPEVAR                                    -> this.beanTypesCache.computeIfAbsent(t, t0 -> this.supertypes(t0, BeanTypes::legalBeanType));
     default -> {
       assert !legalBeanType(t);

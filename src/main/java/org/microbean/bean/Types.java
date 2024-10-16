@@ -20,6 +20,7 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +30,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Parameterizable;
 import javax.lang.model.element.QualifiedNameable;
 
 import javax.lang.model.type.ArrayType;
@@ -37,6 +40,7 @@ import javax.lang.model.type.IntersectionType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
+import javax.lang.model.type.WildcardType;
 
 import org.microbean.lang.TypeAndElementSource;
 
@@ -78,6 +82,89 @@ public class Types implements Constable {
    */
 
 
+  // "Condenses" t, according to the following rules.
+  //
+  // If t is null, returns List.of().
+  //
+  // If t is a type variable, returns the result of condensing its upper bound (thus eliminating the type
+  // variable). Recall that the upper bound of a type variable may be an intersection type.
+  //
+  // If t is an intersection type, returns the result of condensing its bounds (thus eliminating the intersection type).
+  //
+  // If t is a wildcard type, returns the result of condensing either its super or extends bound (thus eliminating the
+  // wildcard type). The result of condensing a wildcard type that declares neither bound (?) is the result of
+  // condensing the type declared by java.lang.Object. If t declares both an extends and a super bound, an
+  // IllegalArgumentException is thrown.
+  //
+  // In all other cases returns List.of(t).
+  //
+  // Note especially this is not type erasure, though it has some similarities.
+  //
+  // See #condense(List) below.
+  public final List<? extends TypeMirror> condense(final TypeMirror t) {
+    return t == null ? List.of() : switch (t.getKind()) {
+    case INTERSECTION -> this.condense(((IntersectionType)t).getBounds());
+    case TYPEVAR      -> this.condense(((TypeVariable)t).getUpperBound());
+    case WILDCARD     -> {
+      final WildcardType w = (WildcardType)t;
+      final TypeMirror s = w.getSuperBound();
+      final TypeMirror e = w.getExtendsBound();
+      if (s == null) {
+        yield e == null ? List.of(this.tes.declaredType("java.lang.Object")) : this.condense(e);
+      } else if (e == null) {
+        yield this.condense(s);
+      }
+      throw new IllegalArgumentException("t: " + t);
+    }
+    default           -> List.of(t); // t's bounds are defined solely by itself
+    };
+  }
+
+  // If ts is empty, returns an empty unmodifiable List.
+  //
+  // If ts consists of a single element, returns the result of condensing t (see #condense(TypeMirror) above).
+  //
+  // Otherwise creates a new list, condenses each element of ts, and adds each element of the condensation to the new
+  // list, and returns an unmodifiable view of the new list.
+  //
+  // Note that deliberately duplicates are not eliminated from the new list.
+  public final  List<? extends TypeMirror> condense(final List<? extends TypeMirror> ts) {
+    final int size = ts.size();
+    if (size == 0) {
+      return List.of();
+    }
+    // We take care not to allocate/copy new lists needlessly.
+    ArrayList<TypeMirror> newBounds = null;
+    for (int i = 0; i < size; i++) {
+      final TypeMirror t = ts.get(i);
+      switch (t.getKind()) {
+      case INTERSECTION:
+      case TYPEVAR:
+      case WILDCARD:
+        // These are the only types where condensing does anything. In these cases alone we need to make a new list.
+        if (newBounds == null) {
+          newBounds = new ArrayList<>(size * 2);
+          if (i > 0) {
+            // All ts up to this point have been non-condensable types, so catch up and add them as-is.
+            newBounds.addAll(ts.subList(0, i));
+          }
+        }
+        newBounds.addAll(condense(t));
+        break;
+      default:
+        if (newBounds != null) {
+          newBounds.add(t);
+        }
+        break;
+      }
+    }
+    if (newBounds == null) {
+      return ts;
+    }
+    newBounds.trimToSize();
+    return Collections.unmodifiableList(newBounds);
+  }
+
   /**
    * Returns an {@link Optional} housing a {@link ConstantDesc} that represents this {@link Types}.
    *
@@ -101,11 +188,55 @@ public class Types implements Constable {
                                                                             CD_TypeAndElementSource),
                                              tesDesc));
   }
+  
+  // Is e a TypeElement representing java.lang.Object?
+  public final boolean isJavaLangObject(final Element e) {
+    // This method is non-static to permit changing its internal implementation, which might rely on the
+    // TypeAndElementSource in the future.
+    return
+      e.getKind() == ElementKind.CLASS &&
+      ((QualifiedNameable)e).getQualifiedName().contentEquals("java.lang.Object");
+  }
 
-  public final DeclaredType objectType() {
+  // Is t a DeclaredType whose asElement() method returns an Element representing java.lang.Object?
+  public final boolean isJavaLangObject(final TypeMirror t) {
+    return
+      t.getKind() == TypeKind.DECLARED &&
+      isJavaLangObject(((DeclaredType)t).asElement());
+  }
+  
+  public final DeclaredType javaLangObjectType() {
     return this.tes.declaredType("java.lang.Object");
   }
 
+  // Get the raw type yielded by t, assuming t is the sort of type that can yield a raw type.
+  //
+  // An array type with a parameterized element type can yield a raw type.
+  //
+  // A declared type that is parameterized can yield a raw type.
+  //
+  // No other type yields a raw type.
+  //
+  // t cannot be null.
+  public final TypeMirror rawType(final TypeMirror t) {
+    return switch (t.getKind()) {
+    case ARRAY -> {
+      final TypeMirror et = elementType(t);
+      if (!parameterized(et)) {
+        throw new IllegalArgumentException("t is an array type whose element type is not parameterized so cannot yield a raw type");
+      }
+      yield this.typeAndElementSource().arrayTypeOf(this.typeAndElementSource().erasure(et));
+    }
+    case DECLARED -> {
+      if (!parameterized(t)) {
+        throw new IllegalArgumentException("t is a declared type that is not parameterized so cannot yield a raw type");
+      }
+      yield this.typeAndElementSource().erasure(t);
+    }
+    default -> throw new IllegalArgumentException("t is a " + t.getKind() + " type and so cannot yield a raw type");
+    };
+  }
+  
   public final List<TypeMirror> supertypes(final TypeMirror t) {
     return this.supertypes(t, Types::returnTrue);
   }
@@ -141,12 +272,49 @@ public class Types implements Constable {
     }
   }
 
+  public final TypeAndElementSource typeAndElementSource() {
+    return this.tes;
+  }
+
 
   /*
    * Static methods.
    */
 
 
+  // Returns the element type of t.
+  //
+  // The element type of an array type is the element type of its component type.
+  //
+  // The element type of every other kind of type is the type itself.
+  public static final TypeMirror elementType(final TypeMirror t) {
+    return t.getKind() == TypeKind.ARRAY ? elementType(((ArrayType)t).getComponentType()) : t;
+  }
+
+  // Is t the usage of a generic class, i.e. a usage (whether raw or parameterized) of a generic class declaration?
+  //
+  // t is deemed to be generic if it is a declared type whose defining element (its type declaration) is generic.
+  //
+  // Array types are never generic.
+  public static final boolean generic(final TypeMirror t) {
+    return
+      t.getKind() == TypeKind.DECLARED &&
+      generic(((DeclaredType)t).asElement());
+  }
+
+  // Does e represent a generic declaration?
+  //
+  // A declaration is generic if it declares one or more type parameters.
+  //
+  // Since an annotation interface cannot declare type parameters, it follows that TypeElements representing annotation
+  // instances are never generic.
+  private static final boolean generic(final Element e) {
+    return switch (e.getKind()) {
+    case CLASS, CONSTRUCTOR, ENUM, INTERFACE, METHOD, RECORD -> !((Parameterizable)e).getTypeParameters().isEmpty();
+    default -> false;
+    };
+  }
+  
   static final String name(final TypeMirror t) {
     return switch (t.getKind()) {
     case ARRAY -> name(((ArrayType)t).getComponentType()) + "[]";
@@ -184,6 +352,16 @@ public class Types implements Constable {
     return cs instanceof String s ? s : cs.toString();
   }
 
+  // Is t a parameterized type (and not a raw type) strictly according to the rules of the Java Language Specification?
+  //
+  // A type is parameterized if it is a declared type with a non-empty list of type arguments. No other type is
+  // parameterized.
+  public static final boolean parameterized(final TypeMirror t) {
+    return
+      t.getKind() == TypeKind.DECLARED &&
+      !((DeclaredType)t).getTypeArguments().isEmpty();
+  }
+  
   private static final boolean isInterface(final TypeMirror t) {
     return t.getKind() == TypeKind.DECLARED && isInterface(((DeclaredType)t).asElement());
   }
@@ -192,8 +370,36 @@ public class Types implements Constable {
     return e.getKind().isInterface();
   }
 
+  // Is t a raw type, following the rules of the Java Language Specification, not CDI?
+  //
+  // A raw type is either "the erasure of a parameterized type" (so List<String>'s raw type is List, clearly not
+  // List<?>, and not List<E>) or "an array type whose element type is a raw type" (so List<String>[]'s raw type is
+  // List[]). (String is not a raw type; its element defines no type parameters.)
+  //
+  // No other type is a raw type.
+  //
+  // CDI gets confused and uses "raw" in different senses. The sense used here is that of the Java Language
+  // Specification.
+  public static final boolean raw(final TypeMirror t) {
+    return switch (t.getKind()) {
+    case ARRAY -> raw(elementType((ArrayType)t));
+    case DECLARED -> generic(t) && ((DeclaredType)t).getTypeArguments().isEmpty();
+    default -> false;
+    };
+  }
+  
   private static final <T> boolean returnTrue(final T ignored) {
     return true;
+  }
+
+  // Can t *yield* a raw type?
+  //
+  // We say that to yield a raw type, t must be either:
+  //
+  // * a declared type with at least one type argument
+  // * an array type with a parameterized element type
+  public static final boolean yieldsRawType(final TypeMirror t) {
+    return parameterized(t) || t.getKind() == TypeKind.ARRAY && parameterized(elementType(t));
   }
 
   /*

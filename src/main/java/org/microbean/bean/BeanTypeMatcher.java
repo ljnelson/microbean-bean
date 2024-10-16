@@ -120,7 +120,7 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
       case ARRAY    -> switch (payload.getKind()) {
         // "...array types are considered to match only if their element types [note: not component types] are
         // identical ['identical' is actually undefined in the specification]..."
-        case ARRAY                                                -> this.identical(elementType((ArrayType)receiver), elementType((ArrayType)payload));
+        case ARRAY                                                -> this.identical(Types.elementType((ArrayType)receiver), Types.elementType((ArrayType)payload));
         case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> false;
         case DECLARED                                             -> false;
         default                                                   -> throw illegalPayload(payload);
@@ -229,22 +229,22 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
     assert payload.getKind() == TypeKind.DECLARED;
     return switch (payload) {
 
-      case DeclaredType parameterizedPayload when parameterized(payload) -> switch (receiver) {
+      case DeclaredType parameterizedPayload when Types.parameterized(payload) -> switch (receiver) {
         // "A parameterized bean type [parameterizedPayload] is considered assignable..."
 
-        case DeclaredType rawReceiver when !generic(receiver) || raw(receiver) ->
+        case DeclaredType rawReceiver when !Types.generic(receiver) || Types.raw(receiver) ->
           // "...to a [non-generic class or] raw required type [rawReceiver] if the [non-generic class or] raw types are
           // identical [undefined] and all type parameters [type arguments] of the bean type [parameterizedPayload] are
           // either unbounded type variables [undefined] or java.lang.Object."
           this.identical(this.nonGenericClassOrRawType(rawReceiver),
                          this.nonGenericClassOrRawType(parameterizedPayload)) &&
           allTypeArgumentsAre(parameterizedPayload.getTypeArguments(),
-                              ((Predicate<TypeMirror>)this::unboundedTypeVariable).or(AbstractTypeMatcher::isJavaLangObject));
+                              ((Predicate<TypeMirror>)this::unboundedTypeVariable).or(this.types()::isJavaLangObject));
 
         case DeclaredType parameterizedReceiver -> {
           // "...to a parameterized required type [parameterizedReceiver]..."
 
-          if (this.identical(this.rawType(parameterizedReceiver), this.rawType(parameterizedPayload))) {
+          if (this.identical(this.types().rawType(parameterizedReceiver), this.types().rawType(parameterizedPayload))) {
             // "...if they have identical raw type [really if their declarations/elements are 'identical']..."
 
             final List<? extends TypeMirror> rtas = parameterizedReceiver.getTypeArguments();
@@ -264,6 +264,29 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
                 case ARRAY: // pta
                 case DECLARED: // pta
                   // "...are actual types [non-type variable, non-wildcard reference types]..."
+                  //
+                  // CDI mentions actual types but does not define what they are. This method attempts to divine and
+                  // implement the intent.
+                  //
+                  // A comment in a closed bug report (CDI-502)
+                  // (https://issues.redhat.com/browse/CDI-502?focusedId=13036118&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-13036118)
+                  // by one of the reference implementation's authors (Jozef Hartinger) provides the only definition:
+                  //
+                  // "An actual type is a type that is not a wildcard nor [sic] an unresolved [sic] type variable."
+                  //
+                  // The Java Language Specification does not mention anything about "actual types" or type variable
+                  // "resolution". CDI does not mention anything about type variable "resolution".
+                  //
+                  // (Clearly type variable "resolution" must simply be the process of supplying a type argument for a
+                  // type parameter.)
+                  //
+                  // Presumably the null type is not intended to be an actual type either.
+                  //
+                  // More strictly, therefore, the intent seems to be that an actual type is an array, declared or
+                  // primitive type, and none other.
+                  //
+                  // See also:
+                  // https://github.com/weld/core/blob/5.1.2.Final/impl/src/main/java/org/jboss/weld/util/Types.java#L213
 
                   if (this.identical(this.nonGenericClassOrRawType(rta), this.nonGenericClassOrRawType(pta))) {
                     // "...with identical [non-generic classes or] raw types[s], and, if the type [?] is parameterized
@@ -325,12 +348,19 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
 
                 case TYPEVAR: // pta
                   // "...the required type parameter [receiver type argument, rta] is an actual type [an array or
-                  // declared type], the bean type parameter [payload type argument, pta] is a type variable..."
+                  // declared type], the bean type parameter [payload type argument, pta] is a type variable, and the
+                  // actual type [rta] is assignable to the upper bound, if any, of the type variable [pta]..."
+                  /*
                   if (assignableToCondensedTypeVariableBounds((TypeVariable)pta, rta)) {
-                    // "...and the actual type is assignable to the upper bound, if any, of the type variable..."
                     //
-                    // (This is weird. Yes, the *receiver* type argument is being tested to see if it is assignable to the
-                    // *payload* type argument.)
+                    // (This is weird. Yes, this is "backwards"; the *receiver* type argument is being tested to see if
+                    // it is assignable to the *payload* type argument.)
+                    //
+                    // TODO: I think this is fully handled by covariantlyAssignable(pta, rta)
+                    continue;
+                  }
+                  */
+                  if (this.covariantlyAssignable(pta, rta)) {
                     continue;
                   }
                   yield false;
@@ -351,14 +381,20 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
 
                 case TYPEVAR: // pta
                   // "...the required type parameter [receiver type argument, rta] and the bean type parameter [payload
-                  // type argument, pta] are both type variables..."
+                  // type argument, pta] are both type variables, and the upper bound of the required type parameter
+                  // [rta] [a type variable has many bounds?] is assignable to the upper bound [a type variable has many
+                  // bounds?], if any, of the bean type parameter [pta]..."
+                  /*
                   if (condensedTypeVariableBoundsAssignableToCondensedTypeVariableBounds((TypeVariable)pta, (TypeVariable)rta)) {
-                    // "...and the upper bound of the required type parameter [receiver type argument, rta] [a type
-                    // variable has many bounds?] is assignable to the upper bound [a type variable has many bounds?],
-                    // if any, of the bean type parameter [payload type argument, pta]"
                     //
                     // (This is weird. Yes, the *receiver* type argument is being tested to see if it is assignable to
                     // the *payload* type argument.)
+                    //
+                    // TODO: I think this is fully handled by covariantlyAssignable(pta, rta).
+                    continue;
+                  }
+                  */
+                  if (this.covariantlyAssignable(pta, rta)) {
                     continue;
                   }
                   yield false;
@@ -377,25 +413,35 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
                 case ARRAY: // pta
                 case DECLARED: // pta
                   // "...the bean type parameter [payload type argument, pta] is an actual type [a non-type variable,
-                  // non-wildcard reference type]..."
+                  // non-wildcard reference type], and the actual type [pta] is assignable to the upper bound, if any,
+                  // of the wildcard [receiver type argument, rta] and assignable from the lower bound, if any of the
+                  // wildcard [rta]..."
+                  /*
                   if (assignableToCondensedExtendsBound((WildcardType)rta, (ReferenceType)pta) &&
                       assignableFromCondensedSuperBound((ReferenceType)pta, (WildcardType)rta)) {
-                    // "...and the [this] actual type is assignable to the upper bound, if any, of the wildcard
-                    // [receiver type argument, rta] and assignable from the lower bound, if any of the wildcard
-                    // [receiver type argument, rta]"
+                    // TODO: is this simply the contains() relationship? So basically: does rta contain pta?
                     continue; // (or break)
+                  }
+                  */
+                  if (this.contains(rta, pta)) {
+                    continue;
                   }
                   yield false;
 
                 case TYPEVAR: // pta
                   // "...the required type parameter [receiver type argument, rta] is a wildcard, the bean type
-                  // parameter [payload type argument, pta] is a type variable..."
+                  // parameter [payload type argument, pta] is a type variable, and the upper bound of the type variable
+                  // [a type variable has many bounds!] [pta] is assignable to or assignable from the upper bound, if
+                  // any, of the wildcard [rta] and assignable from the lower bound, if any, of the wildcard [rta]"
+                  /*
                   if ((condensedTypeVariableBoundsAssignableToCondensedExtendsBound((WildcardType)rta, (TypeVariable)pta) ||
                        condensedTypeVariableBoundsAssignableFromCondensedExtendsBound((TypeVariable)pta, (WildcardType)rta)) &&
                       condensedTypeVariableBoundsAssignableFromCondensedSuperBound((TypeVariable)pta, (WildcardType)rta)) {
-                    // "...and the upper bound of the type variable [a type variable has many bounds?] is assignable to
-                    // or assignable from the upper bound, if any, of the wildcard and assignable from the lower bound,
-                    // if any, of the wildcard"
+                    // TODO: is this simply the contains() relationship? So basically: does rta contain pta?
+                    continue;
+                  }
+                  */
+                  if (this.contains(rta, pta)) {
                     continue;
                   }
                   yield false;
@@ -422,13 +468,13 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
       case DeclaredType nonGenericOrRawPayload -> switch (receiver) {
         // "A [non-generic or] raw bean type [nonGenericOrRawPayload] is considered assignable..."
 
-        case DeclaredType parameterizedReceiver when parameterized(receiver) ->
+        case DeclaredType parameterizedReceiver when Types.parameterized(receiver) ->
           // "...to a parameterized required type [parameterizedReceiver] if the[ir] [non-generic classes or] raw types
           // are identical and all type parameters [type arguments] of the required type [parameterizedReceiver] are
           // either unbounded type variables [undefined] or java.lang.Object."
           this.identical(this.nonGenericClassOrRawType(parameterizedReceiver), nonGenericOrRawPayload) &&
           allTypeArgumentsAre(parameterizedReceiver.getTypeArguments(),
-                              ((Predicate<TypeMirror>)this::unboundedTypeVariable).or(AbstractTypeMatcher::isJavaLangObject));
+                              ((Predicate<TypeMirror>)this::unboundedTypeVariable).or(this.types()::isJavaLangObject));
 
         // [Otherwise the payload is not assignable to the receiver; identity checking should have already happened in
         // test(), not here.]
@@ -438,6 +484,7 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
   }
 
   // Are payload's condensed bounds assignable to receiver's condensed extends bound (upper bound)?
+  /*
   private final boolean condensedTypeVariableBoundsAssignableToCondensedExtendsBound(final WildcardType receiver, final TypeVariable payload) {
     assert receiver.getKind() == TypeKind.WILDCARD;
     assert payload.getKind() == TypeKind.TYPEVAR;
@@ -448,8 +495,10 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
     // semantics will work properly in this case; #covariantlyAssignable(List, List) does this already.
     return extendsBound == null || this.covariantlyAssignable(List.of((ReferenceType)extendsBound), List.of(payload));
   }
+  */
 
   // Is payload's condensed extends bound (upper bound) covariantly assignable to receiver's condensed bounds?
+  /*
   private final boolean condensedTypeVariableBoundsAssignableFromCondensedExtendsBound(final TypeVariable receiver, final WildcardType payload) {
     assert receiver.getKind() == TypeKind.TYPEVAR;
     assert payload.getKind() == TypeKind.WILDCARD;
@@ -460,8 +509,10 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
     // semantics will work properly in this case; #covariantlyAssignable(List, List) does this already.
     return extendsBound == null || this.covariantlyAssignable(List.of(receiver), List.of((ReferenceType)extendsBound));
   }
+  */
 
   // Is payload's super bound (lower bound) covariantly assignable to receiver's condensed bounds?
+  /*
   private final boolean condensedTypeVariableBoundsAssignableFromCondensedSuperBound(final TypeVariable receiver, final WildcardType payload) {
     assert receiver.getKind() == TypeKind.TYPEVAR;
     assert payload.getKind() == TypeKind.WILDCARD;
@@ -470,8 +521,10 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
     // semantics will work properly in this case; #covariantlyAssignable(List, List) does this already.
     return superBound == null || this.covariantlyAssignable(List.of(receiver), List.of(superBound));
   }
+  */
 
   // Are payload's condensed bounds covariantly assignable to receiver's condensed bounds?
+  /*
   private final boolean condensedTypeVariableBoundsAssignableToCondensedTypeVariableBounds(final TypeVariable receiver, final TypeVariable payload) {
     assert receiver.getKind() == TypeKind.TYPEVAR;
     assert payload.getKind() == TypeKind.TYPEVAR;
@@ -479,6 +532,7 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
     // semantics will work properly in this case; #covariantlyAssignable(List, List) does this already.
     return this.covariantlyAssignable(List.of(receiver), List.of(payload));
   }
+  */
 
 
   /*

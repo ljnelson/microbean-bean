@@ -42,7 +42,7 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
       // Interestingly array types are never discussed explicitly in the specification's sections on observer
       // resolution, but clearly they must be possible.
       case ARRAY                                                -> switch (payload.getKind()) {
-        case ARRAY    -> this.identical(elementType(receiver), elementType(payload)); // never spelled out in the spec but inferred
+        case ARRAY    -> this.identical(Types.elementType(receiver), Types.elementType(payload)); // never spelled out in the spec but inferred
         case DECLARED -> false;
         default       -> throw illegalPayload(payload);
       };
@@ -74,18 +74,18 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
     assert payload.getKind() == TypeKind.DECLARED;
     return switch (payload) {
 
-      case DeclaredType parameterizedPayload when parameterized(payload) -> switch (receiver) {
+      case DeclaredType parameterizedPayload when Types.parameterized(payload) -> switch (receiver) {
         // "A parameterized event type [parameterizedPayload] is considered assignable to..."
 
-        case DeclaredType rawReceiver when !generic(receiver) || raw(receiver) ->
+        case DeclaredType rawReceiver when !Types.generic(receiver) || Types.raw(receiver) ->
           // "...a [non-generic class or] raw observed event type [rawReceiver] if the [non-generic class or] raw types
           // are identical [undefined]."
           this.identical(this.nonGenericClassOrRawType(rawReceiver), this.nonGenericClassOrRawType(parameterizedPayload));
 
         case DeclaredType parameterizedReceiver -> {
           // "...a parameterized observed event type [parameterizedReceiver]..."
-          assert parameterized(receiver);
-          if (this.identical(this.rawType(parameterizedReceiver), this.rawType(parameterizedPayload))) {
+          assert Types.parameterized(receiver);
+          if (this.identical(this.types().rawType(parameterizedReceiver), this.types().rawType(parameterizedPayload))) {
             // "...if they have identical raw type[s] [really if their declarations/elements are 'identical']..."
 
             final List<? extends TypeMirror> rtas = parameterizedReceiver.getTypeArguments();
@@ -153,14 +153,14 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
       case DeclaredType nonGenericOrRawPayload -> switch (receiver) {
         // "A [non-generic or] raw event type [nonGenericOrRawayload] is considered assignable..."
 
-        case DeclaredType parameterizedReceiver when parameterized(receiver) -> {
+        case DeclaredType parameterizedReceiver when Types.parameterized(receiver) -> {
           // "...to a parameterized observed event type [parameterizedReceiver] if the[ir] [non-generic classes or] raw
           // types are identical and all type parameters [type arguments] of the required type [observed event type,
           // receiver] are either unbounded type variables or java.lang.Object."
           yield
             this.identical(this.nonGenericClassOrRawType(parameterizedReceiver), nonGenericOrRawPayload) &&
             allTypeArgumentsAre(parameterizedReceiver.getTypeArguments(),
-                                ((Predicate<TypeMirror>)this::unboundedTypeVariable).or(AbstractTypeMatcher::isJavaLangObject));
+                                ((Predicate<TypeMirror>)this::unboundedTypeVariable).or(this.types()::isJavaLangObject));
         }
 
         // [Otherwise the payload is not assignable to the receiver; identity checking should have already happened in

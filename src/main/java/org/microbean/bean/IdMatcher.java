@@ -22,13 +22,13 @@ import org.microbean.qualifier.NamedAttributeMap;
 
 public final class IdMatcher implements Matcher<AttributedType, Id> {
 
-  private final QualifiersMatcher qm;
+  private final BeanQualifiersMatcher qm;
 
   private final InterceptorBindingsMatcher ibm;
 
   private final BeanTypeMatcher tm;
 
-  public IdMatcher(final QualifiersMatcher qm,
+  public IdMatcher(final BeanQualifiersMatcher qm,
                    final InterceptorBindingsMatcher ibm,
                    final BeanTypeMatcher tm) {
     super();

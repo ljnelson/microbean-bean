@@ -16,6 +16,10 @@ package org.microbean.bean;
 import java.lang.System.Logger;
 
 import java.util.List;
+import java.util.Set;
+
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
@@ -56,8 +60,18 @@ public final class EventTypes extends Types {
 
   public final List<TypeMirror> eventTypes(final TypeMirror t) {
     // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#event_types_and_qualifier_types
-    //
-    // "The event types of the event include all superclasses and interfaces of the runtime class of the event object."
+    if (t.getKind() == TypeKind.DECLARED) {
+      final TypeElement e = (TypeElement)((DeclaredType)t).asElement();
+      if (e.getKind().isInterface() || !e.getKind().isClass() || e.getModifiers().contains(Modifier.ABSTRACT)) {
+        // "An event object is an instance of a concrete Java class...."
+        if (LOGGER.isLoggable(WARNING)) {
+          LOGGER.log(WARNING, t + " is an illegal event type");
+        }
+        return List.of();
+      }
+    }
+    // "The event types of the event include all superclasses and interfaces of the [concrete] runtime class of the
+    // event object."
     return this.supertypes(t, EventTypes::legalEventType);
   }
 
@@ -84,13 +98,13 @@ public final class EventTypes extends Types {
 
     // You can't fire a primitive event as of this writing, but there's nothing stopping a primitive event type from
     // being legal otherwise.
-    case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> true;
+    // case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> true;
 
     case DECLARED -> {
       // "An event type may not contain an unresolvable type variable. A wildcard type is not considered an unresolvable
       // type variable."
       //
-      // We interpret "contain" to mean "have as a type argument, recursively".
+      // We interpret "contain" to mean "have as a type argument, recursively, anywhere".
       for (final TypeMirror typeArgument : ((DeclaredType)t).getTypeArguments()) {
         if (typeArgument.getKind() != TypeKind.WILDCARD && !legalEventType(typeArgument)) { // note recursion
           if (LOGGER.isLoggable(WARNING)) {
@@ -114,12 +128,9 @@ public final class EventTypes extends Types {
 
   public static final boolean legalObservedEventType(final TypeMirror t) {
     // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#event_types_and_qualifier_types
-    // "Any Java type may be an observed event type."
-    //
-    // (This isn't strictly speaking true. An intersection type, an executable type, a wildcard type, and so on cannot
-    // be observed event types because you cannot declare a method parameter that bears them.)
+    // "Any Java type [that a method parameter element may bear] may be an observed event type."
     return switch (t.getKind()) {
-    case ARRAY, BOOLEAN, DECLARED, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT, TYPEVAR -> true;
+    case ARRAY, BOOLEAN, BYTE, CHAR, DECLARED, DOUBLE, FLOAT, INT, LONG, SHORT, TYPEVAR -> true;
     default -> false;
     };
   }

@@ -36,7 +36,7 @@ final class TestBeanSelection {
   private static final TypeAndElementSource tes = typeAndElementSource();
 
   private static final Matcher<AttributedType, Id> matcher =
-    new IdMatcher(new QualifiersMatcher(), new InterceptorBindingsMatcher(), new BeanTypeMatcher(tes));
+    new IdMatcher(new BeanQualifiersMatcher(), new InterceptorBindingsMatcher(), new BeanTypeMatcher(tes));
 
   private TestBeanSelection() {
     super();
