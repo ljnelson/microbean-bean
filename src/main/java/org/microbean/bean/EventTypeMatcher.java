@@ -58,11 +58,13 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
           this.assignable((DeclaredType)receiver, (DeclaredType)payload);
         default       -> throw illegalPayload(payload);
       };
-      // "An event type [payload] is considered assignable to a type variable [receiver] if the event type is assignable
-      // to the [condensed] upper bound [of the type variable, which may be an intersection type], if any [in which case
-      // the upper bound will be java.lang.Object]."
+      // "An event type [payload] is considered assignable to a type variable [receiver] if the event type [payload] is
+      // assignable to the [condensed] upper bound [of the type variable [receiver], which may be an intersection type],
+      // if any [in which case the upper bound will be java.lang.Object]."
       case TYPEVAR                                              -> switch (payload.getKind()) {
-        case ARRAY, DECLARED -> assignableToCondensedTypeVariableBounds((TypeVariable)receiver, payload);
+        // TODO: I think this is fully handled by covariantlyAssignable(rta, pta).
+        // case ARRAY, DECLARED -> assignableToCondensedTypeVariableBounds((TypeVariable)receiver, payload);
+        case ARRAY, DECLARED -> this.covariantlyAssignable(receiver, payload);
         default              -> throw illegalPayload(payload);
       };
       default                                                   -> throw illegalReceiver(receiver);
@@ -118,25 +120,37 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
                 }
                 yield false;
 
-              case WILDCARD: // rta
-                // "...the observed event type parameter [receiver type argument, rta] is a wildcard and the event type
-                // parameter [payload type argument, pta] is assignable to the upper bound, if any, of the wildcard and
-                // assignable from the lower bound, if any, of the wildcard..."
-                if (assignableToCondensedExtendsBound((WildcardType)rta, (ReferenceType)pta) &&
-                    assignableFromCondensedSuperBound((ReferenceType)pta, (WildcardType)rta)) {
-                  continue;
-                }
-                yield false;
-
               case TYPEVAR: // rta
                 // "...the observed event type parameter [receiver type argument, rta] is a type variable and the event
                 // type parameter [payload type argument, pta] is assignable to the upper bound, if any [type variables
                 // have multiple bounds], of the type variable [receiver type argument, rta]"
+                /*
                 if (assignableToCondensedTypeVariableBounds((TypeVariable)rta, (ReferenceType)pta)) {
+                  // TODO: I think this is fully handled by covariantlyAssignable(rta, pta).
+                  continue;
+                }
+                */
+                if (this.covariantlyAssignable(rta, pta)) {
                   continue;
                 }
                 yield false;
 
+              case WILDCARD: // rta
+                // "...the observed event type parameter [receiver type argument, rta] is a wildcard and the event type
+                // parameter [payload type argument, pta] is assignable to the upper bound, if any, of the wildcard and
+                // assignable from the lower bound, if any, of the wildcard..."                
+                /*
+                if (assignableToCondensedExtendsBound((WildcardType)rta, (ReferenceType)pta) &&
+                    assignableFromCondensedSuperBound((ReferenceType)pta, (WildcardType)rta)) {
+                    // TODO: is this simply the contains() relationship? So basically: does rta contain pta?
+                  continue;
+                }
+                */
+                if (this.contains(rta, pta)) {
+                  continue;
+                }
+                yield false;
+                
               default: // rta
                 throw new AssertionError("rta: " + rta); // type arguments in Java can't be anything else
               } // end switch(rta.getKind())

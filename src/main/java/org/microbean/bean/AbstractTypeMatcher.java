@@ -84,6 +84,7 @@ public abstract class AbstractTypeMatcher implements Constable {
   // types.
   //
   // Therefore this is really: Is there one bound among payload's actual super bounds that is assignable to receiver?
+  /*
   protected boolean assignableFromCondensedSuperBound(final ReferenceType receiver, final WildcardType payload) {
     assert payload.getKind() == TypeKind.WILDCARD;
     final ReferenceType superBound = (ReferenceType)payload.getSuperBound();
@@ -93,8 +94,10 @@ public abstract class AbstractTypeMatcher implements Constable {
     default -> throw new AssertionError();
     };
   }
+  */
 
   // Is candidate covariantly assignable to w's condensed extends (upper) bound?
+  /*
   protected boolean assignableToCondensedExtendsBound(final WildcardType w, final ReferenceType candidate) {
     assert w.getKind() == TypeKind.WILDCARD;
     final ReferenceType extendsBound = (ReferenceType)w.getExtendsBound();
@@ -104,6 +107,7 @@ public abstract class AbstractTypeMatcher implements Constable {
     default -> throw new AssertionError();
     };
   }
+  */
 
   // Is the type argument represented by payload assignable to all of the receiver's condensed bounds?
   //
@@ -116,13 +120,13 @@ public abstract class AbstractTypeMatcher implements Constable {
   // Recall that after condensing "T extends CharSequence" you get CharSequence.
   //
   // Recall that if, instead, you had T extends S and S extends CharSequence, condensing T still yields CharSequence.
+  /*
   protected boolean assignableToCondensedTypeVariableBounds(final TypeVariable receiver, final TypeMirror payload) {
     assert receiver.getKind() == TypeKind.TYPEVAR;
     return this.covariantlyAssignable(receiver, payload);
-    /*
-    return covariantlyAssignable(List.of(receiver), List.of(payload)); // deliberately List.of(payload) and not condense(payload)
-    */
+    // return covariantlyAssignable(List.of(receiver), List.of(payload)); // deliberately List.of(payload) and not condense(payload)
   }
+  */
 
   protected boolean contains(final TypeMirror t, final TypeMirror s) {
     return this.tes.contains(t, s);
