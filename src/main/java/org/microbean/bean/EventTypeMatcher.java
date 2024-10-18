@@ -28,6 +28,11 @@ import javax.lang.model.type.WildcardType;
 
 import org.microbean.lang.TypeAndElementSource;
 
+import static org.microbean.bean.Types.elementType;
+import static org.microbean.bean.Types.generic;
+import static org.microbean.bean.Types.parameterized;
+import static org.microbean.bean.Types.raw;
+
 // Experimental and basically located in the wrong package and module.
 public final class EventTypeMatcher extends AbstractTypeMatcher implements Matcher<TypeMirror, TypeMirror> {
 
@@ -38,17 +43,55 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
   @Override // Matcher<TypeMirror, TypeMirror>
   public final boolean test(final TypeMirror receiver, final TypeMirror payload) {
     // https://jakarta.ee/specifications/cdi/4.0/jakarta-cdi-spec-4.0#observer_resolution
-    return receiver == Objects.requireNonNull(payload, "payload") || switch (receiver.getKind()) {
+    return switch (receiver.getKind()) {
       // Interestingly array types are never discussed explicitly in the specification's sections on observer
       // resolution, but clearly they must be possible.
       case ARRAY                                                -> switch (payload.getKind()) {
-        case ARRAY    -> this.identical(Types.elementType(receiver), Types.elementType(payload)); // never spelled out in the spec but inferred
+        case ARRAY    -> this.identical(elementType(receiver), elementType(payload)); // never spelled out in the spec but inferred
         case DECLARED -> false;
         default       -> throw illegalPayload(payload);
       };
-      case BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT -> switch (payload.getKind()) {
+      // There is no mention in the specification of primitive and wrapper type interchangeability but it looks like
+      // that is where the specification is headed, and all existing implementations behave as if it were fully
+      // specified (see https://github.com/jakartaee/cdi/issues/829).
+      case BOOLEAN                                              -> switch (payload.getKind()) {
         case ARRAY    -> false;
-        case DECLARED -> false; // no mention is made of wrapper classes
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Boolean");
+        default       -> throw illegalPayload(payload);
+      };
+      case BYTE                                                 -> switch (payload.getKind()) {
+        case ARRAY    -> false;
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Byte");
+        default       -> throw illegalPayload(payload);
+      };
+      case CHAR                                                 -> switch (payload.getKind()) {
+        case ARRAY    -> false;
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Character");
+        default       -> throw illegalPayload(payload);
+      };
+      case DOUBLE                                               -> switch (payload.getKind()) {
+        case ARRAY    -> false;
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Double");
+        default       -> throw illegalPayload(payload);
+      };
+      case FLOAT                                                -> switch (payload.getKind()) {
+        case ARRAY    -> false;
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Float");
+        default       -> throw illegalPayload(payload);
+      };
+      case INT                                                  -> switch (payload.getKind()) {
+        case ARRAY    -> false;
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Integer");
+        default       -> throw illegalPayload(payload);
+      };
+      case LONG                                                 -> switch (payload.getKind()) {
+        case ARRAY    -> false;
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Long");
+        default       -> throw illegalPayload(payload);
+      };
+      case SHORT                                                -> switch (payload.getKind()) {
+        case ARRAY    -> false;
+        case DECLARED -> named((DeclaredType)payload, "java.lang.Short");
         default       -> throw illegalPayload(payload);
       };
       case DECLARED                                             -> switch (payload.getKind()) {
@@ -76,17 +119,17 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
     assert payload.getKind() == TypeKind.DECLARED;
     return switch (payload) {
 
-      case DeclaredType parameterizedPayload when Types.parameterized(payload) -> switch (receiver) {
+      case DeclaredType parameterizedPayload when parameterized(payload) -> switch (receiver) {
         // "A parameterized event type [parameterizedPayload] is considered assignable to..."
 
-        case DeclaredType rawReceiver when !Types.generic(receiver) || Types.raw(receiver) ->
+        case DeclaredType rawReceiver when !generic(receiver) || raw(receiver) ->
           // "...a [non-generic class or] raw observed event type [rawReceiver] if the [non-generic class or] raw types
           // are identical [undefined]."
           this.identical(this.nonGenericClassOrRawType(rawReceiver), this.nonGenericClassOrRawType(parameterizedPayload));
 
         case DeclaredType parameterizedReceiver -> {
           // "...a parameterized observed event type [parameterizedReceiver]..."
-          assert Types.parameterized(receiver);
+          assert parameterized(receiver);
           if (this.identical(this.types().rawType(parameterizedReceiver), this.types().rawType(parameterizedPayload))) {
             // "...if they have identical raw type[s] [really if their declarations/elements are 'identical']..."
 
@@ -138,7 +181,7 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
               case WILDCARD: // rta
                 // "...the observed event type parameter [receiver type argument, rta] is a wildcard and the event type
                 // parameter [payload type argument, pta] is assignable to the upper bound, if any, of the wildcard and
-                // assignable from the lower bound, if any, of the wildcard..."                
+                // assignable from the lower bound, if any, of the wildcard..."
                 /*
                 if (assignableToCondensedExtendsBound((WildcardType)rta, (ReferenceType)pta) &&
                     assignableFromCondensedSuperBound((ReferenceType)pta, (WildcardType)rta)) {
@@ -150,7 +193,7 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
                   continue;
                 }
                 yield false;
-                
+
               default: // rta
                 throw new AssertionError("rta: " + rta); // type arguments in Java can't be anything else
               } // end switch(rta.getKind())
@@ -167,7 +210,7 @@ public final class EventTypeMatcher extends AbstractTypeMatcher implements Match
       case DeclaredType nonGenericOrRawPayload -> switch (receiver) {
         // "A [non-generic or] raw event type [nonGenericOrRawayload] is considered assignable..."
 
-        case DeclaredType parameterizedReceiver when Types.parameterized(receiver) -> {
+        case DeclaredType parameterizedReceiver when parameterized(receiver) -> {
           // "...to a parameterized observed event type [parameterizedReceiver] if the[ir] [non-generic classes or] raw
           // types are identical and all type parameters [type arguments] of the required type [observed event type,
           // receiver] are either unbounded type variables or java.lang.Object."

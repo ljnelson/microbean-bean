@@ -540,12 +540,4 @@ public final class BeanTypeMatcher extends AbstractTypeMatcher implements Matche
    */
 
 
-  // Regardless of its reported TypeKind, does t's declaring TypeElement bear the supplied fully qualified name?
-  //
-  // Throws ClassCastException if the return value of t.asElement() is not a TypeElement.
-  private static final boolean named(final DeclaredType t, final CharSequence n) {
-    // (No getKind() check on purpose.)
-    return ((QualifiedNameable)t.asElement()).getQualifiedName().contentEquals(n);
-  }
-
 }
